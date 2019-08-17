@@ -1,4 +1,6 @@
 # APKGrabber
+[![Build Status](https://travis-ci.org/jamesalfei/apkgrabber.svg?branch=master)](https://travis-ci.org/jamesalfei/apkgrabber)
+
 APKGrabber is a fork of [APKUpdater](https://github.com/rumboalla/apkupdater). Big thanks and of course
 all credits go to [rumboalla](https://github.com/rumboalla).
 I try to develop new features and maintain the software to stay available on latest android devices,
