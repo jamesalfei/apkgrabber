@@ -4,10 +4,10 @@ BDD With Cucumber, Espresso and Kotlin
 Adding dependencies to build.gradle
 ---------------------
 ```Gradle
-testCompile "junit:junit:4.12"
-androidTestCompile "com.android.support:support-annotations:25.4.0"
-androidTestCompile "com.android.support.test.espresso:espresso-core:2.2.2"
-androidTestCompile "info.cukes:cucumber-android:1.2.5"
+testImplementation "junit:junit:4.12"
+androidTestImplementation "com.android.support:support-annotations:25.4.0"
+androidTestImplementation "com.android.support.test.espresso:espresso-core:2.2.2"
+androidTestImplementation "info.cukes:cucumber-android:1.2.5"
 ```
 
 Adding source sets to build.gradle
