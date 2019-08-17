@@ -4,6 +4,7 @@ import com.github.yeriomin.playstoreapi.AuthException;
 import com.github.yeriomin.playstoreapi.GooglePlayAPI;
 import com.github.yeriomin.playstoreapi.GooglePlayException;
 import com.github.yeriomin.playstoreapi.HttpClientAdapter;
+import okhttp3.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,40 +13,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import okhttp3.Cookie;
-import okhttp3.CookieJar;
-import okhttp3.FormBody;
-import okhttp3.Headers;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-
 public class OkHttpClientAdapter extends HttpClientAdapter {
 
     OkHttpClient client;
 
     public OkHttpClientAdapter() {
         setClient(new OkHttpClient.Builder()
-            .connectTimeout(6, TimeUnit.SECONDS)
-            .readTimeout(6, TimeUnit.SECONDS)
-            .cookieJar(new CookieJar() {
-                private final HashMap<HttpUrl, List<Cookie>> cookieStore = new HashMap<HttpUrl, List<Cookie>>();
+                .connectTimeout(6, TimeUnit.SECONDS)
+                .readTimeout(6, TimeUnit.SECONDS)
+                .cookieJar(new CookieJar() {
+                    private final HashMap<HttpUrl, List<Cookie>> cookieStore = new HashMap<HttpUrl, List<Cookie>>();
 
-                @Override
-                public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
-                    cookieStore.put(url, cookies);
-                }
+                    @Override
+                    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                        cookieStore.put(url, cookies);
+                    }
 
-                @Override
-                public List<Cookie> loadForRequest(HttpUrl url) {
-                    List<Cookie> cookies = cookieStore.get(url);
-                    return cookies != null ? cookies : new ArrayList<Cookie>();
-                }
-            })
-            .build()
+                    @Override
+                    public List<Cookie> loadForRequest(HttpUrl url) {
+                        List<Cookie> cookies = cookieStore.get(url);
+                        return cookies != null ? cookies : new ArrayList<Cookie>();
+                    }
+                })
+                .build()
         );
     }
 
@@ -56,8 +46,8 @@ public class OkHttpClientAdapter extends HttpClientAdapter {
     @Override
     public byte[] get(String url, Map<String, String> params, Map<String, String> headers) throws IOException {
         Request.Builder requestBuilder = new Request.Builder()
-            .url(buildUrl(url, params))
-            .get();
+                .url(buildUrl(url, params))
+                .get();
 
         return request(requestBuilder, headers);
     }
@@ -73,14 +63,14 @@ public class OkHttpClientAdapter extends HttpClientAdapter {
 
         FormBody.Builder bodyBuilder = new FormBody.Builder();
         if (null != params && !params.isEmpty()) {
-            for (String name: params.keySet()) {
+            for (String name : params.keySet()) {
                 bodyBuilder.add(name, params.get(name));
             }
         }
 
         Request.Builder requestBuilder = new Request.Builder()
-            .url(url)
-            .post(bodyBuilder.build());
+                .url(url)
+                .post(bodyBuilder.build());
 
         return post(url, requestBuilder, headers);
     }
@@ -92,8 +82,8 @@ public class OkHttpClientAdapter extends HttpClientAdapter {
         }
 
         Request.Builder requestBuilder = new Request.Builder()
-            .url(url)
-            .post(RequestBody.create(MediaType.parse("application/x-protobuf"), body));
+                .url(url)
+                .post(RequestBody.create(MediaType.parse("application/x-protobuf"), body));
 
         return post(url, requestBuilder, headers);
     }
@@ -138,7 +128,7 @@ public class OkHttpClientAdapter extends HttpClientAdapter {
     public String buildUrl(String url, Map<String, String> params) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
         if (null != params && !params.isEmpty()) {
-            for (String name: params.keySet()) {
+            for (String name : params.keySet()) {
                 urlBuilder.addQueryParameter(name, params.get(name));
             }
         }

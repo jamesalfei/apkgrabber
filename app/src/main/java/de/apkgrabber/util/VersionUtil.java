@@ -1,118 +1,109 @@
 package de.apkgrabber.util;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.os.Build;
-
 import de.apkgrabber.R;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 public class VersionUtil {
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	static public String getStringVersionFromString(
-		String full_string
-	) {
-		List<Integer> v = getVersionFromString(full_string);
-		String version = "";
-		for (Integer i : v) {
-			version += i + ".";
-		}
-		return version.substring(0, version.length() - 1);
-	}
+    static public String getStringVersionFromString(
+            String full_string
+    ) {
+        List<Integer> v = getVersionFromString(full_string);
+        String version = "";
+        for (Integer i : v) {
+            version += i + ".";
+        }
+        return version.substring(0, version.length() - 1);
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	static public List<Integer> getVersionFromString(
-		String full_string
-	) {
+    static public List<Integer> getVersionFromString(
+            String full_string
+    ) {
         List<Integer> version = new ArrayList<>();
 
-		// First split string with spaces, - and .
-		for (String i : full_string.split("( )|(-)|(\\.)")) {
+        // First split string with spaces, - and .
+        for (String i : full_string.split("( )|(-)|(\\.)")) {
             try {
                 int c = Integer.parseInt(
-                    // Remove v to properly read versions like v0.0.1
-                    i.replace("v", "").replace("V", "").replace("b", "").replace("B", "").replace("u", "").replace("U", "")
+                        // Remove v to properly read versions like v0.0.1
+                        i.replace("v", "").replace("V", "").replace("b", "").replace("B", "").replace("u", "").replace("U", "")
                 );
                 version.add(c);
             } catch (NumberFormatException e) {
                 break;
             }
-		}
+        }
 
         // If we have at least 2 numbers consider it a version
         if (version.size() >= 2) {
             return version;
         }
 
-		// If that failed, try making a version from all numbers on the string
-		version.clear();
-		for (String i : full_string.replaceAll("[^0-9]+", " ").trim().split(" ")) {
-			version.add(Integer.valueOf(i));
-		}
+        // If that failed, try making a version from all numbers on the string
+        version.clear();
+        for (String i : full_string.replaceAll("[^0-9]+", " ").trim().split(" ")) {
+            version.add(Integer.valueOf(i));
+        }
 
-		if (version.size() > 0) {
-			return version;
-		}
-		
-		return null;
-	}
+        if (version.size() > 0) {
+            return version;
+        }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        return null;
+    }
 
-	static public int compareVersion(
-		List<Integer> l,
-		List<Integer> r
-	) {
-		for (int i = 0; i < (l.size() > r.size() ? r.size() : l.size()); i++) {
-			if (l.get(i) < r.get(i)) {
-				return -1;
-			} else if (l.get(i) > r.get(i)) {
-				return 1;
-			}
-		}
 
-		return 0;
-	}
+    static public int compareVersion(
+            List<Integer> l,
+            List<Integer> r
+    ) {
+        for (int i = 0; i < (l.size() > r.size() ? r.size() : l.size()); i++) {
+            if (l.get(i) < r.get(i)) {
+                return -1;
+            } else if (l.get(i) > r.get(i)) {
+                return 1;
+            }
+        }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        return 0;
+    }
 
-	static public boolean isExperimental(
-		String s
-	) {
-		return s.toLowerCase().contains("beta") || s.toLowerCase().contains("alpha");
-	}
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    static public boolean isExperimental(
+            String s
+    ) {
+        return s.toLowerCase().contains("beta") || s.toLowerCase().contains("alpha");
+    }
 
-	static public String getUserAgent(
-		Context context
-	) {
-		String version = "0.0.0";
-		try {
-			PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-			version = pInfo.versionName;
-		} catch (Exception ignored) {
 
-		}
+    static public String getUserAgent(
+            Context context
+    ) {
+        String version = "0.0.0";
+        try {
+            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            version = pInfo.versionName;
+        } catch (Exception ignored) {
 
-		return context.getString(R.string.app_name) + "-v" + version;
-	}
+        }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        return context.getString(R.string.app_name) + "-v" + version;
+    }
 
-    static public  <T> List<List<T>> batchList(
-        List<T> list,
-        int batchSize
+
+    static public <T> List<List<T>> batchList(
+            List<T> list,
+            int batchSize
     ) {
         int listSize = list.size();
         List<List<T>> parts = new ArrayList<>();
@@ -122,17 +113,16 @@ public class VersionUtil {
         return parts;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     static public boolean skipArchitecture(
-        List<String> arches
+            List<String> arches
     ) {
-		if (arches.isEmpty()) {
-			return false;
-		}
+        if (arches.isEmpty()) {
+            return false;
+        }
 
-		List<String> supportedArchitectures = new ArrayList<>();
-		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        List<String> supportedArchitectures = new ArrayList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             supportedArchitectures = Arrays.asList(Build.SUPPORTED_ABIS);
         } else {
             supportedArchitectures.add(Build.CPU_ABI);
@@ -145,18 +135,17 @@ public class VersionUtil {
             }
         }
 
-	    return true;
+        return true;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     static public boolean skipMinapi(
-        String minApi
+            String minApi
     ) {
-	    try {
-			if (minApi.equalsIgnoreCase("o")) {
-				minApi = "26";
-			}
+        try {
+            if (minApi.equalsIgnoreCase("o")) {
+                minApi = "26";
+            }
 
             // If minapi is higher than current api, skip this
             if (Integer.valueOf(minApi) > Build.VERSION.SDK_INT) {
@@ -165,12 +154,11 @@ public class VersionUtil {
 
             return false;
         } catch (Exception e) {
-	        return false;
+            return false;
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+

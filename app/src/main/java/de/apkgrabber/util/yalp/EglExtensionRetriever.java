@@ -3,16 +3,11 @@ package de.apkgrabber.util.yalp;
 import android.opengl.GLES10;
 import android.text.TextUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
+import java.util.*;
 
 public class EglExtensionRetriever {
 
@@ -28,8 +23,8 @@ public class EglExtensionRetriever {
         if (egl10.eglGetConfigs(display, null, 0, cf)) {
             EGLConfig[] configs = new EGLConfig[cf[0]];
             if (egl10.eglGetConfigs(display, configs, cf[0], cf)) {
-                int[] a1 = new int[] {EGL10.EGL_WIDTH, EGL10.EGL_PBUFFER_BIT, EGL10.EGL_HEIGHT, EGL10.EGL_PBUFFER_BIT, EGL10.EGL_NONE};
-                int[] a2 = new int[] {12440, EGL10.EGL_PIXMAP_BIT, EGL10.EGL_NONE};
+                int[] a1 = new int[]{EGL10.EGL_WIDTH, EGL10.EGL_PBUFFER_BIT, EGL10.EGL_HEIGHT, EGL10.EGL_PBUFFER_BIT, EGL10.EGL_NONE};
+                int[] a2 = new int[]{12440, EGL10.EGL_PIXMAP_BIT, EGL10.EGL_NONE};
                 int[] a3 = new int[1];
                 for (int i = 0; i < cf[0]; i++) {
                     egl10.eglGetConfigAttrib(display, configs[i], EGL10.EGL_CONFIG_CAVEAT, a3);

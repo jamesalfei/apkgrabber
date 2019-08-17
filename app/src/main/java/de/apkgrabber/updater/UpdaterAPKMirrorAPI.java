@@ -1,9 +1,8 @@
 package de.apkgrabber.updater;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.content.Context;
-
+import com.google.gson.Gson;
 import de.apkgrabber.model.APKMirror.AppExistsRequest;
 import de.apkgrabber.model.APKMirror.AppExistsResponse;
 import de.apkgrabber.model.APKMirror.AppExistsResponseApk;
@@ -13,28 +12,18 @@ import de.apkgrabber.model.Update;
 import de.apkgrabber.util.CollectionUtil;
 import de.apkgrabber.util.GenericCallback;
 import de.apkgrabber.util.VersionUtil;
-import com.google.gson.Gson;
-
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.List;
+import okhttp3.*;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 
-import okhttp3.Credentials;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+public class UpdaterAPKMirrorAPI {
 
-public class UpdaterAPKMirrorAPI
-{
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static final String BaseUrl = "https://www.apkmirror.com/wp-json/apkm/v1/";
     private static final String DownloadUrl = "https://www.apkmirror.com";
@@ -50,12 +39,11 @@ public class UpdaterAPKMirrorAPI
     private List<Update> mUpdates = new ArrayList<>();
     private GenericCallback<Update> mUpdateCallback;
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public UpdaterAPKMirrorAPI(
-        Context context,
-        List<InstalledApp> apps,
-        GenericCallback<Update> updateCallback
+            Context context,
+            List<InstalledApp> apps,
+            GenericCallback<Update> updateCallback
     ) {
         // Store vars
         mApps = apps;
@@ -77,19 +65,19 @@ public class UpdaterAPKMirrorAPI
         }
 
         AppExistsRequest json = new AppExistsRequest(
-            pnames,
-            null
-            //new UpdaterOptions(context).skipExperimental() ? AppExistsRequest.excludeExperimental() : null
+                pnames,
+                null
+                //new UpdaterOptions(context).skipExperimental() ? AppExistsRequest.excludeExperimental() : null
         );
 
         // Build the OkHttp request
         RequestBody body = RequestBody.create(JSON, new Gson().toJson(json));
         final Request request = new Request.Builder()
-            .url(BaseUrl + AppExists)
-            .header("User-Agent", VersionUtil.getUserAgent(mContext))
-            .post(body)
-            .header("Authorization", Credentials.basic(User, Token))
-            .build();
+                .url(BaseUrl + AppExists)
+                .header("User-Agent", VersionUtil.getUserAgent(mContext))
+                .post(body)
+                .header("Authorization", Credentials.basic(User, Token))
+                .build();
 
         // Perform request
         try {
@@ -102,10 +90,9 @@ public class UpdaterAPKMirrorAPI
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void parseResponse(
-        String body
+            String body
     ) {
         try {
             // Convert response json to object
@@ -161,12 +148,12 @@ public class UpdaterAPKMirrorAPI
                     if (Integer.valueOf(apk.getVersionCode()) > app.getVersionCode()) {
                         // Add the update
                         Update u = new Update(
-                            app,
-                            DownloadUrl + data.getRelease().getLink(),
-                            data.getRelease().getVersion(),
-                            isBeta,
-                            null,
-                            Integer.valueOf(apk.getVersionCode())
+                                app,
+                                DownloadUrl + data.getRelease().getLink(),
+                                data.getRelease().getVersion(),
+                                isBeta,
+                                null,
+                                Integer.valueOf(apk.getVersionCode())
                         );
                         u.setChangeLog(data.getRelease().getWhatsNew());
                         mUpdates.add(u);
@@ -184,10 +171,9 @@ public class UpdaterAPKMirrorAPI
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private InstalledApp getInstalledApp(
-        String pname
+            String pname
     ) {
         for (InstalledApp app : mApps) {
             if (app.getPname().equals(pname)) {
@@ -197,11 +183,10 @@ public class UpdaterAPKMirrorAPI
         return null;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private AppExistsResponseData getData(
-        AppExistsResponse response,
-        String pname
+            AppExistsResponse response,
+            String pname
     ) {
         for (AppExistsResponseData data : response.getData()) {
             if (data.getPname().equals(pname)) {
@@ -211,55 +196,58 @@ public class UpdaterAPKMirrorAPI
         return null;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private OkHttpClient getOkHttpClient(
     ) {
         try {
-            final TrustManager[] trust = new TrustManager[] {
-                new X509TrustManager() {
-                    @Override public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {}
-                    @Override public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {}
-                    @Override public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new java.security.cert.X509Certificate[]{};
+            final TrustManager[] trust = new TrustManager[]{
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                        }
+
+                        @Override
+                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                        }
+
+                        @Override
+                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                            return new java.security.cert.X509Certificate[]{};
+                        }
                     }
-                }
             };
 
             SSLContext context = SSLContext.getInstance("SSL");
             context.init(null, trust, new java.security.SecureRandom());
 
             return new OkHttpClient.Builder()
-                .sslSocketFactory(context.getSocketFactory(), (X509TrustManager)trust[0])
-                .build();
+                    .sslSocketFactory(context.getSocketFactory(), (X509TrustManager) trust[0])
+                    .build();
 
         } catch (Exception e) {
             return null;
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public Throwable getResultError(
     ) {
         return new Throwable(mError);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public UpdaterStatus getResultStatus(
     ) {
         return mResultCode;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public List<Update> getUpdates(
     ) {
         return mUpdates;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+

@@ -18,7 +18,7 @@
     <!-- inverse text color: 87% black -->
     <color name="textColorPrimaryInverse">#00FF00</color>
     <color name="textColorSecondaryInverse">#00FFFF</color>
-    
+
     <!-- General colors -->
     <color name="tabIndicatorColor">#FFFFFF</color>
     <color name="errorColor">#FFCC0000</color>

@@ -1,6 +1,5 @@
 package de.apkgrabber.receiver;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
@@ -10,7 +9,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.support.v4.content.FileProvider;
-
 import de.apkgrabber.event.InstallAppEvent;
 import de.apkgrabber.event.PackageInstallerEvent;
 import de.apkgrabber.model.Constants;
@@ -19,19 +17,16 @@ import de.apkgrabber.updater.UpdaterOptions;
 import de.apkgrabber.util.FileUtil;
 import de.apkgrabber.util.LogUtil;
 import de.apkgrabber.util.MyBus;
-
 import org.androidannotations.annotations.Bean;
 import org.androidannotations.annotations.EReceiver;
 
 import java.io.File;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @EReceiver
 public class DownloadReceiver
-    extends BroadcastReceiver
-{
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        extends BroadcastReceiver {
+
 
     @Bean
     LogUtil mLog;
@@ -39,12 +34,11 @@ public class DownloadReceiver
     @Bean
     MyBus mBus;
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     public void onReceive(
-        final Context context,
-        final Intent intent
+            final Context context,
+            final Intent intent
     ) {
         // Launch install
         if (intent.getAction().equals(Constants.DownloadAction)) {
@@ -54,7 +48,7 @@ public class DownloadReceiver
                     openDownloadedFileDirect(context, intent);
                 }
             }).start();
-        } else if (intent.getAction().equals(Constants.DownloadManagerAction)){
+        } else if (intent.getAction().equals(Constants.DownloadManagerAction)) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -64,11 +58,10 @@ public class DownloadReceiver
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private boolean openDownloadedFile(
-        final Context context,
-        final Intent intent
+            final Context context,
+            final Intent intent
     ) {
         long id = -1;
         try {
@@ -86,8 +79,8 @@ public class DownloadReceiver
                     throw new Exception("Error downloading.");
                 }
             } else {
-				throw new Exception("Download cancelled.");
-			}
+                throw new Exception("Download cancelled.");
+            }
             cursor.close();
             return true;
         } catch (Exception e) {
@@ -97,11 +90,10 @@ public class DownloadReceiver
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private boolean openDownloadedFileDirect(
-        final Context context,
-        final Intent intent
+            final Context context,
+            final Intent intent
     ) {
         long id = -1;
         try {
@@ -122,15 +114,13 @@ public class DownloadReceiver
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void install(
-        Context context,
-        String uriString,
-        long id
+            Context context,
+            String uriString,
+            long id
     )
-        throws  Exception
-    {
+            throws Exception {
         UpdaterOptions options = new UpdaterOptions(context);
 
         if (options.useRootInstall()) {
@@ -142,8 +132,8 @@ public class DownloadReceiver
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 install = new Intent(Intent.ACTION_INSTALL_PACKAGE);
                 install.setDataAndType(
-                    FileProvider.getUriForFile(context, Constants.FileProvider, new File(u.getPath())),
-                    Constants.ApkMime
+                        FileProvider.getUriForFile(context, Constants.FileProvider, new File(u.getPath())),
+                        Constants.ApkMime
                 );
                 install.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } else {
@@ -155,13 +145,11 @@ public class DownloadReceiver
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void installWithRoot(
-        String uriString
+            String uriString
     )
-        throws  Exception
-    {
+            throws Exception {
         try {
             File f = new File(Uri.parse(uriString).getPath());
             FileUtil.installApk(f.getAbsolutePath());
@@ -171,8 +159,6 @@ public class DownloadReceiver
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

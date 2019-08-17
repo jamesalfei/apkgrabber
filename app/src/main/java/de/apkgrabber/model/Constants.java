@@ -1,14 +1,12 @@
 package de.apkgrabber.model;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-public class Constants
-{
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+public class Constants {
+
 
     static public final String PackageName = "de.apkgrabber";
     static public final String GitHubURL = "https://github.com/hemker/apkgrabber";
-	static public final String OwnAccountHelpURL = "https://github.com/rumboalla/apkupdater/issues/223";
+    static public final String OwnAccountHelpURL = "https://github.com/rumboalla/apkupdater/issues/223";
     static public final String DownloadAction = PackageName + ".DOWNLOAD_COMPLETE";
     static public final String DownloadManagerAction = "android.intent.action.DOWNLOAD_COMPLETE";
     static public final String FileProvider = PackageName + ".fileprovider";
@@ -23,7 +21,7 @@ public class Constants
     static public final String SelfUpdaterNotificationChannelId = "selfUpdateNotificationChannel";
     static public final String AutomaticUpdateNotificationChannelId = "automaticUpdateNotificationChannel";
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+

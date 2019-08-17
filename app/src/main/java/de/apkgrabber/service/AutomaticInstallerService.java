@@ -1,6 +1,5 @@
 package de.apkgrabber.service;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.app.IntentService;
 import android.app.Notification;
@@ -10,23 +9,15 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.support.v4.app.NotificationCompat;
-
 import android.support.v7.preference.PreferenceManager;
+import com.github.yeriomin.playstoreapi.AndroidAppDeliveryData;
+import com.google.gson.Gson;
 import de.apkgrabber.R;
 import de.apkgrabber.model.AppState;
 import de.apkgrabber.model.Constants;
 import de.apkgrabber.model.LogMessage;
 import de.apkgrabber.model.Update;
-import de.apkgrabber.util.DownloadUtil;
-import de.apkgrabber.util.FileUtil;
-import de.apkgrabber.util.GooglePlayUtil;
-import de.apkgrabber.util.InstalledAppUtil;
-import de.apkgrabber.util.LogUtil;
-import de.apkgrabber.util.MyBus;
-
-import com.github.yeriomin.playstoreapi.AndroidAppDeliveryData;
-import com.google.gson.Gson;
-
+import de.apkgrabber.util.*;
 import org.androidannotations.annotations.Bean;
 import org.androidannotations.annotations.EService;
 
@@ -34,43 +25,39 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @EService
 public class AutomaticInstallerService
-	extends IntentService
-{
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	@Bean
-	MyBus mBus;
-
-	@Bean
-	InstalledAppUtil mInstalledAppUtil;
-
-	@Bean
-	AppState mAppState;
-
-	@Bean
-	LogUtil mLogger;
-
-	private int Status = 0;
-
-	private SharedPreferences sharedPreferences;
+        extends IntentService {
 
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    @Bean
+    MyBus mBus;
 
-	public AutomaticInstallerService(
-	) {
-		super(AutomaticInstallerService.class.getSimpleName());
+    @Bean
+    InstalledAppUtil mInstalledAppUtil;
+
+    @Bean
+    AppState mAppState;
+
+    @Bean
+    LogUtil mLogger;
+
+    private int Status = 0;
+
+    private SharedPreferences sharedPreferences;
+
+
+    public AutomaticInstallerService(
+    ) {
+        super(AutomaticInstallerService.class.getSimpleName());
         sharedPreferences =
                 PreferenceManager.getDefaultSharedPreferences(this);
 
-	}
+    }
 
-	private void doNotification(
-	    Notification notification
+    private void doNotification(
+            Notification notification
     ) {
         NotificationManager m = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
         if (m != null) {
@@ -78,12 +65,11 @@ public class AutomaticInstallerService
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void doAppNotification(
-        int current,
-        int max,
-        Update u
+            int current,
+            int max,
+            Update u
     ) {
         Context c = getApplicationContext();
         NotificationCompat.Builder b = new NotificationCompat.Builder(getApplicationContext());
@@ -100,7 +86,6 @@ public class AutomaticInstallerService
         doNotification(b.build());
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void doErrorNotification(
     ) {
@@ -118,11 +103,10 @@ public class AutomaticInstallerService
         doNotification(b.build());
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void doFinalNotification(
-        List<Update> success,
-        List<Update> failure
+            List<Update> success,
+            List<Update> failure
     ) {
         Context c = getApplicationContext();
         NotificationCompat.Builder b = new NotificationCompat.Builder(getApplicationContext());
@@ -161,14 +145,13 @@ public class AutomaticInstallerService
         doNotification(b.build());
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private void installApps(
-	    Update [] updates
+    private void installApps(
+            Update[] updates
     ) {
-	    try {
-	        List<Update> success = new ArrayList<>(), failure = new ArrayList<>();
-	        int i = 0;
+        try {
+            List<Update> success = new ArrayList<>(), failure = new ArrayList<>();
+            int i = 0;
 
             for (Update u : updates) {
                 try {
@@ -176,14 +159,14 @@ public class AutomaticInstallerService
                     doAppNotification(i, updates.length, u);
 
                     AndroidAppDeliveryData data = GooglePlayUtil.getAppDeliveryData(
-                        GooglePlayUtil.getApi(getApplicationContext()),
-                        u.getPname()
+                            GooglePlayUtil.getApi(getApplicationContext()),
+                            u.getPname()
                     );
 
                     File f = DownloadUtil.downloadFile(
-                        getApplicationContext(),
-                        data.getDownloadUrl(),
-                        data.getDownloadAuthCookie(0).getName() + "=" + data.getDownloadAuthCookie(0).getValue()
+                            getApplicationContext(),
+                            data.getDownloadUrl(),
+                            data.getDownloadAuthCookie(0).getName() + "=" + data.getDownloadAuthCookie(0).getValue()
                     );
 
                     if (f != null) {
@@ -213,28 +196,27 @@ public class AutomaticInstallerService
             doFinalNotification(success, failure);
             Boolean switchPref = sharedPreferences.getBoolean
                     (getApplicationContext().getString(R.string.preferences_general_self_update_key), true);
-            if(switchPref) {
+            if (switchPref) {
                 UpdaterService_.intent(getApplicationContext()).start();
                 mLogger.log("installApps", "Auto refreshing update list, since update was installed.", LogMessage.SEVERITY_INFO);
             }
         } catch (Exception e) {
-	        doErrorNotification();
-	        mLogger.log("installApps", String.valueOf(e), LogMessage.SEVERITY_ERROR);
+            doErrorNotification();
+            mLogger.log("installApps", String.valueOf(e), LogMessage.SEVERITY_ERROR);
         }
     }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Override
-	protected void onHandleIntent(
-		Intent intent
-	) {
-	    String u = intent.getExtras().getString("updates");
-        Update [] updates = new Gson().fromJson(u, Update[].class);
+    @Override
+    protected void onHandleIntent(
+            Intent intent
+    ) {
+        String u = intent.getExtras().getString("updates");
+        Update[] updates = new Gson().fromJson(u, Update[].class);
         installApps(updates);
-	}
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+

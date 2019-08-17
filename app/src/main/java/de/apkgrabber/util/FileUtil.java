@@ -1,28 +1,20 @@
 package de.apkgrabber.util;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.content.Context;
 import android.os.Environment;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.UUID;
-
 import eu.chainfire.libsuperuser.Shell;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+import java.io.*;
+import java.util.UUID;
 
-public class FileUtil
-{
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+public class FileUtil {
+
 
     static public boolean inputStreamToFile(
-        InputStream input,
-        File file
+            InputStream input,
+            File file
     ) {
         try {
             OutputStream output = new FileOutputStream(file);
@@ -43,15 +35,13 @@ public class FileUtil
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     static public boolean installApk(
-        String path
+            String path
     )
-        throws Exception
-    {
+            throws Exception {
         if (Shell.SU.available()) {
-            if(Shell.SU.run("pm install -r " + path) == null) {
+            if (Shell.SU.run("pm install -r " + path) == null) {
                 throw new Exception("Error executing pm install.");
             } else {
                 return true;
@@ -61,13 +51,11 @@ public class FileUtil
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     static public File getRandomFile(
-        Context context
+            Context context
     )
-        throws  IOException
-    {
+            throws IOException {
         File dir = context.getExternalCacheDir();
         if (dir == null) {
 //            if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
@@ -83,8 +71,6 @@ public class FileUtil
         return new File(dir, UUID.randomUUID().toString());
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

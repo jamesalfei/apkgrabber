@@ -1,6 +1,5 @@
 package de.apkgrabber.activity;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -16,16 +15,12 @@ import android.view.Menu;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-
+import com.squareup.otto.Subscribe;
 import de.apkgrabber.R;
 import de.apkgrabber.event.InstallAppEvent;
 import de.apkgrabber.event.PackageInstallerEvent;
 import de.apkgrabber.event.SnackBarEvent;
-import de.apkgrabber.fragment.AboutFragment_;
-import de.apkgrabber.fragment.LogFragment_;
-import de.apkgrabber.fragment.MainFragment;
-import de.apkgrabber.fragment.MainFragment_;
-import de.apkgrabber.fragment.SettingsFragment_;
+import de.apkgrabber.fragment.*;
 import de.apkgrabber.model.AppState;
 import de.apkgrabber.model.DownloadInfo;
 import de.apkgrabber.model.LogMessage;
@@ -34,129 +29,113 @@ import de.apkgrabber.service.SelfUpdateService;
 import de.apkgrabber.service.UpdaterService;
 import de.apkgrabber.service.UpdaterService_;
 import de.apkgrabber.updater.UpdaterOptions;
-import de.apkgrabber.util.AnimationUtil;
-import de.apkgrabber.util.ColorUtil;
-import de.apkgrabber.util.InstalledAppUtil;
-import de.apkgrabber.util.InjektUtil;
-import de.apkgrabber.util.LogUtil;
-import de.apkgrabber.util.MyBus;
-import de.apkgrabber.util.ServiceUtil;
-import de.apkgrabber.util.SnackBarUtil;
-import de.apkgrabber.util.ThemeUtil;
-import com.squareup.otto.Subscribe;
+import de.apkgrabber.util.*;
+import org.androidannotations.annotations.*;
 
-import org.androidannotations.annotations.Bean;
-import org.androidannotations.annotations.Click;
-import org.androidannotations.annotations.EActivity;
-import org.androidannotations.annotations.OptionsItem;
-import org.androidannotations.annotations.ViewById;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @EActivity
 public class MainActivity
-	extends AppCompatActivity
-{
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        extends AppCompatActivity {
 
-	@ViewById(R.id.toolbar)
-	Toolbar mToolbar;
 
-	@Bean
-	MyBus mBus;
+    @ViewById(R.id.toolbar)
+    Toolbar mToolbar;
 
-	@Bean
-	AppState mAppState;
+    @Bean
+    MyBus mBus;
 
-	@Bean
+    @Bean
+    AppState mAppState;
+
+    @Bean
     LogUtil mLog;
 
-	@ViewById(R.id.container)
-	FrameLayout mContainer;
+    @ViewById(R.id.container)
+    FrameLayout mContainer;
 
-	@ViewById(R.id.update_button)
+    @ViewById(R.id.update_button)
     FloatingActionButton mUpdateButton;
 
-	SettingsFragment_ mSettingsFragment;
-	AboutFragment_ mAboutFragment;
-	LogFragment_ mLogFragment;
-	MainFragment_ mMainFragment;
+    SettingsFragment_ mSettingsFragment;
+    AboutFragment_ mAboutFragment;
+    LogFragment_ mLogFragment;
+    MainFragment_ mMainFragment;
 
-	private int mRequestCode = 1000;
-    private int [] mSlideOut = { R.anim.slide_in_left, R.anim.slide_out_right, R.anim.slide_in_right, R.anim.slide_out_left };
-    private int [] mSlideIn = { R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right };
+    private int mRequestCode = 1000;
+    private int[] mSlideOut = {R.anim.slide_in_left, R.anim.slide_out_right, R.anim.slide_in_right, R.anim.slide_out_left};
+    private int[] mSlideIn = {R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right};
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Override
-	public void onCreate(
-		Bundle savedInstanceState
-	) {
-		super.onCreate(savedInstanceState);
+    @Override
+    public void onCreate(
+            Bundle savedInstanceState
+    ) {
+        super.onCreate(savedInstanceState);
 
-		// Inject Singletons
-		InjektUtil.Companion.init();
-		InjektUtil.Companion.addAppStateSingleton(mAppState);
-		InjektUtil.Companion.addMyBusSingleton(mBus);
-		InjektUtil.Companion.addLogUtilSingleton(mLog);
-		InjektUtil.Companion.addActivitySingleton(this);
+        // Inject Singletons
+        InjektUtil.Companion.init();
+        InjektUtil.Companion.addAppStateSingleton(mAppState);
+        InjektUtil.Companion.addMyBusSingleton(mBus);
+        InjektUtil.Companion.addLogUtilSingleton(mLog);
+        InjektUtil.Companion.addActivitySingleton(this);
 
-		// Set theme and set activity content and toolbar
-		setThemeFromOptions();
-		setContentView(R.layout.activity_main);
-		setSupportActionBar(mToolbar);
+        // Set theme and set activity content and toolbar
+        setThemeFromOptions();
+        setContentView(R.layout.activity_main);
+        setSupportActionBar(mToolbar);
 
-		mBus.register(this);
+        mBus.register(this);
 
-		// Clear updates unless we are coming from a notification
-		boolean isFromNotification = false;
-		try {
-			isFromNotification = getIntent().getExtras().getBoolean("isFromNotification");
-		} catch (Exception ignored) {}
+        // Clear updates unless we are coming from a notification
+        boolean isFromNotification = false;
+        try {
+            isFromNotification = getIntent().getExtras().getBoolean("isFromNotification");
+        } catch (Exception ignored) {
+        }
 
-		if (!isFromNotification) {
-			//mAppState.clearUpdates();
-		}
+        if (!isFromNotification) {
+            //mAppState.clearUpdates();
+        }
 
-		// Simulate a boot de.apkgrabber.receiver to set alarm
-		new BootReceiver_().onReceive(getBaseContext(), null);
+        // Simulate a boot de.apkgrabber.receiver to set alarm
+        new BootReceiver_().onReceive(getBaseContext(), null);
 
-		// Create fragments
-		mMainFragment = new MainFragment_();
-		mSettingsFragment = new SettingsFragment_();
-		mLogFragment = new LogFragment_();
-		mAboutFragment = new AboutFragment_();
+        // Create fragments
+        mMainFragment = new MainFragment_();
+        mSettingsFragment = new SettingsFragment_();
+        mLogFragment = new LogFragment_();
+        mAboutFragment = new AboutFragment_();
 
-		// Add the main fragment
-		if (!(getSupportFragmentManager().findFragmentById(R.id.container) instanceof MainFragment)) {
-			getSupportFragmentManager().beginTransaction()
-				.replace(R.id.container, mMainFragment)
-				.add(R.id.container, mSettingsFragment)
-				.add(R.id.container, mLogFragment)
-				.add(R.id.container, mAboutFragment)
-				.show(mMainFragment)
-				.hide(mSettingsFragment)
-				.hide(mLogFragment)
-				.hide(mAboutFragment)
-			.commit();
-		}
+        // Add the main fragment
+        if (!(getSupportFragmentManager().findFragmentById(R.id.container) instanceof MainFragment)) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.container, mMainFragment)
+                    .add(R.id.container, mSettingsFragment)
+                    .add(R.id.container, mLogFragment)
+                    .add(R.id.container, mAboutFragment)
+                    .show(mMainFragment)
+                    .hide(mSettingsFragment)
+                    .hide(mLogFragment)
+                    .hide(mAboutFragment)
+                    .commit();
+        }
 
-		// Switch to the correct fragment
-		if (mAppState.getSettingsActive()) {
-			new Handler().postDelayed(new Runnable() {
-				@Override
-				public void run() {
-					switchSettings(true);
-				}
-			}, 1);
-		} else if (mAppState.getLogActive()) {
-			new Handler().postDelayed(new Runnable() {
-				@Override
-				public void run() {
-					switchLog(true);
-				}
-			}, 1);
-		} else if (mAppState.getAboutActive()) {
+        // Switch to the correct fragment
+        if (mAppState.getSettingsActive()) {
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    switchSettings(true);
+                }
+            }, 1);
+        } else if (mAppState.getLogActive()) {
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    switchLog(true);
+                }
+            }, 1);
+        } else if (mAppState.getAboutActive()) {
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -168,225 +147,210 @@ public class MainActivity
         // Color floating action button
         colorFloatingActionButton();
 
-		// Self update check at launch
+        // Self update check at launch
         SelfUpdateService.launchSelfUpdate(getApplicationContext());
-		UpdaterService.checkForAppUpdates(getApplicationContext());
-	}
+        UpdaterService.checkForAppUpdates(getApplicationContext());
+    }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private void colorFloatingActionButton(
+    private void colorFloatingActionButton(
     ) {
-	    if (ThemeUtil.getActivityThemeFromOptions(this) == R.style.AppThemeBloody) {
-	        mUpdateButton.setBackgroundTintList(
-	            ColorStateList.valueOf(ColorUtil.getColorFromContext(this, android.R.attr.textColorPrimary))
+        if (ThemeUtil.getActivityThemeFromOptions(this) == R.style.AppThemeBloody) {
+            mUpdateButton.setBackgroundTintList(
+                    ColorStateList.valueOf(ColorUtil.getColorFromContext(this, android.R.attr.textColorPrimary))
             );
             mUpdateButton.setImageDrawable(
-                ColorUtil.tintDrawable(this, mUpdateButton.getDrawable(), R.attr.colorPrimary)
+                    ColorUtil.tintDrawable(this, mUpdateButton.getDrawable(), R.attr.colorPrimary)
             );
         } else {
             mUpdateButton.setImageDrawable(
-                ColorUtil.tintDrawable(this, mUpdateButton.getDrawable(), android.R.attr.textColorPrimary)
+                    ColorUtil.tintDrawable(this, mUpdateButton.getDrawable(), android.R.attr.textColorPrimary)
             );
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void doTransition(
-        int [] anim,
-        Fragment show,
-        Fragment [] hide
+            int[] anim,
+            Fragment show,
+            Fragment[] hide
     ) {
         boolean disableAnimations = new UpdaterOptions(this).disableAnimations();
-	    FragmentTransaction t = getSupportFragmentManager().beginTransaction();
+        FragmentTransaction t = getSupportFragmentManager().beginTransaction();
 
-	    if (!disableAnimations) {
+        if (!disableAnimations) {
             t = t.setCustomAnimations(anim[0], anim[1], anim[2], anim[3]);
         }
 
         t = t.show(show);
 
-	    for (Fragment f : hide) {
-	        t = t.hide(f);
+        for (Fragment f : hide) {
+            t = t.hide(f);
         }
 
         t.commit();
     }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private void switchSettings(
-		boolean b
-	) {
-		if (b) {
-		    doTransition(mSlideOut, mSettingsFragment, new Fragment[] {mMainFragment, mLogFragment, mAboutFragment});
+    private void switchSettings(
+            boolean b
+    ) {
+        if (b) {
+            doTransition(mSlideOut, mSettingsFragment, new Fragment[]{mMainFragment, mLogFragment, mAboutFragment});
             setUpdateButtonVisibility(false);
-			changeToolbar(getString(R.string.action_settings), true);
-		} else {
-            doTransition(mSlideIn, mMainFragment, new Fragment[] {mSettingsFragment, mLogFragment, mAboutFragment});
+            changeToolbar(getString(R.string.action_settings), true);
+        } else {
+            doTransition(mSlideIn, mMainFragment, new Fragment[]{mSettingsFragment, mLogFragment, mAboutFragment});
             setUpdateButtonVisibility(true);
-			changeToolbar(getString(R.string.app_name), false);
-		}
+            changeToolbar(getString(R.string.app_name), false);
+        }
 
-		mAppState.setSettingsActive(b);
-	}
+        mAppState.setSettingsActive(b);
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private void switchLog(
-		boolean b
-	) {
-		if (b) {
-            doTransition(mSlideOut, mLogFragment, new Fragment[] {mMainFragment, mSettingsFragment, mAboutFragment});
+    private void switchLog(
+            boolean b
+    ) {
+        if (b) {
+            doTransition(mSlideOut, mLogFragment, new Fragment[]{mMainFragment, mSettingsFragment, mAboutFragment});
             setUpdateButtonVisibility(false);
-			changeToolbar(getString(R.string.action_log), true);
-		} else {
-            doTransition(mSlideIn, mMainFragment, new Fragment[] {mSettingsFragment, mLogFragment, mAboutFragment});
+            changeToolbar(getString(R.string.action_log), true);
+        } else {
+            doTransition(mSlideIn, mMainFragment, new Fragment[]{mSettingsFragment, mLogFragment, mAboutFragment});
             setUpdateButtonVisibility(true);
-			changeToolbar(getString(R.string.app_name), false);
-		}
+            changeToolbar(getString(R.string.app_name), false);
+        }
 
-		mAppState.setLogActive(b);
-	}
+        mAppState.setLogActive(b);
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private void switchAbout(
-		boolean b
-	) {
-		if (b) {
-            doTransition(mSlideOut, mAboutFragment, new Fragment[] {mMainFragment, mSettingsFragment, mLogFragment});
+    private void switchAbout(
+            boolean b
+    ) {
+        if (b) {
+            doTransition(mSlideOut, mAboutFragment, new Fragment[]{mMainFragment, mSettingsFragment, mLogFragment});
             setUpdateButtonVisibility(false);
-			changeToolbar(getString(R.string.tab_about), true);
-		} else {
-            doTransition(mSlideIn, mMainFragment, new Fragment[] {mSettingsFragment, mLogFragment, mAboutFragment});
+            changeToolbar(getString(R.string.tab_about), true);
+        } else {
+            doTransition(mSlideIn, mMainFragment, new Fragment[]{mSettingsFragment, mLogFragment, mAboutFragment});
             setUpdateButtonVisibility(true);
-			changeToolbar(getString(R.string.app_name), false);
-		}
+            changeToolbar(getString(R.string.app_name), false);
+        }
 
-		mAppState.setAboutActive(b);
-	}
+        mAppState.setAboutActive(b);
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private void changeToolbar(
-		String title,
-		boolean arrow
-	) {
-		try {
-		ActionBar bar = getSupportActionBar();
-			if (bar != null) {
-				AnimationUtil.startToolbarAnimation(this, mToolbar);
+    private void changeToolbar(
+            String title,
+            boolean arrow
+    ) {
+        try {
+            ActionBar bar = getSupportActionBar();
+            if (bar != null) {
+                AnimationUtil.startToolbarAnimation(this, mToolbar);
 
-				// This is to try to avoid the text to be cut during animation. TODO: Find a better way.
-				TextView t = (TextView) mToolbar.getChildAt(0);
-				t.getLayoutParams().width = 2000;
+                // This is to try to avoid the text to be cut during animation. TODO: Find a better way.
+                TextView t = (TextView) mToolbar.getChildAt(0);
+                t.getLayoutParams().width = 2000;
 
-				bar.setTitle(title);
-				bar.setDisplayHomeAsUpEnabled(arrow);
-			}
-		} catch (Exception e) {}
-	}
+                bar.setTitle(title);
+                bar.setDisplayHomeAsUpEnabled(arrow);
+            }
+        } catch (Exception e) {
+        }
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@OptionsItem(R.id.action_settings)
-	void onSettingsClick(
-	) {
-		switchSettings(!mAppState.getSettingsActive());
-	}
+    @OptionsItem(R.id.action_settings)
+    void onSettingsClick(
+    ) {
+        switchSettings(!mAppState.getSettingsActive());
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
         menu.findItem(R.id.action_settings).setIcon(
-            ColorUtil.tintDrawable(this, menu.findItem(R.id.action_settings).getIcon(), android.R.attr.textColorPrimary)
+                ColorUtil.tintDrawable(this, menu.findItem(R.id.action_settings).getIcon(), android.R.attr.textColorPrimary)
         );
 
         return super.onCreateOptionsMenu(menu);
     }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@OptionsItem(android.R.id.home)
-	void onHomeClick(
-	) {
-		if (mAppState.getSettingsActive()) {
-			switchSettings(!mAppState.getSettingsActive());
-		} else if (mAppState.getLogActive()) {
-			switchLog(!mAppState.getLogActive());
-		} else if (mAppState.getAboutActive()) {
-			switchAbout(!mAppState.getAboutActive());
-		}
-	}
+    @OptionsItem(android.R.id.home)
+    void onHomeClick(
+    ) {
+        if (mAppState.getSettingsActive()) {
+            switchSettings(!mAppState.getSettingsActive());
+        } else if (mAppState.getLogActive()) {
+            switchLog(!mAppState.getLogActive());
+        } else if (mAppState.getAboutActive()) {
+            switchAbout(!mAppState.getAboutActive());
+        }
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@OptionsItem(R.id.action_log)
-	void onLogClick(
-	) {
-		switchLog(!mAppState.getLogActive());
-	}
+    @OptionsItem(R.id.action_log)
+    void onLogClick(
+    ) {
+        switchLog(!mAppState.getLogActive());
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@OptionsItem(R.id.action_about)
-	void onAboutClick(
-	) {
-		switchAbout(!mAppState.getAboutActive());
-	}
+    @OptionsItem(R.id.action_about)
+    void onAboutClick(
+    ) {
+        switchAbout(!mAppState.getAboutActive());
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		mBus.unregister(this);
-	}
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mBus.unregister(this);
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private void setThemeFromOptions(
-	) {
-		int theme = ThemeUtil.getActivityThemeFromOptions(getBaseContext());
-		mAppState.setCurrentTheme(theme);
-		setTheme(theme);
-	}
+    private void setThemeFromOptions(
+    ) {
+        int theme = ThemeUtil.getActivityThemeFromOptions(getBaseContext());
+        mAppState.setCurrentTheme(theme);
+        setTheme(theme);
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Override
-	protected void onResume() {
-		super.onResume();
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-		// We are checking if the theme changed
-		if (mAppState.getCurrentTheme() != ThemeUtil.getActivityThemeFromOptions(getBaseContext())) {
-			finish();
-			MainActivity_.intent(this).flags(Intent.FLAG_ACTIVITY_CLEAR_TOP).start();
-		}
-	}
+        // We are checking if the theme changed
+        if (mAppState.getCurrentTheme() != ThemeUtil.getActivityThemeFromOptions(getBaseContext())) {
+            finish();
+            MainActivity_.intent(this).flags(Intent.FLAG_ACTIVITY_CLEAR_TOP).start();
+        }
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Override
-	public void onBackPressed() {
-		// Handle back press depending on app state
-		if (mAppState.getLogActive()) {
-			switchLog(false);
-		} else if (mAppState.getSettingsActive()){
-			switchSettings(false);
-		} else if (mAppState.getAboutActive()){
-			switchAbout(false);
-		} else {
-			super.onBackPressed();
-		}
-	}
+    @Override
+    public void onBackPressed() {
+        // Handle back press depending on app state
+        if (mAppState.getLogActive()) {
+            switchLog(false);
+        } else if (mAppState.getSettingsActive()) {
+            switchSettings(false);
+        } else if (mAppState.getAboutActive()) {
+            switchAbout(false);
+        } else {
+            super.onBackPressed();
+        }
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Click(R.id.update_button)
     protected void onUpdateClick(
@@ -396,30 +360,27 @@ public class MainActivity
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void setUpdateButtonVisibility(
-        boolean visible
+            boolean visible
     ) {
         mUpdateButton.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Subscribe
-	public void onSnackBarEvent(
-		SnackBarEvent ev
-	) {
-		SnackBarUtil.make(this, ev.getMessage());
-	}
+    @Subscribe
+    public void onSnackBarEvent(
+            SnackBarEvent ev
+    ) {
+        SnackBarUtil.make(this, ev.getMessage());
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Subscribe
-	public void onPackageInstallerEvent(
-		PackageInstallerEvent ev
-	) {
-	    try {
+    @Subscribe
+    public void onPackageInstallerEvent(
+            PackageInstallerEvent ev
+    ) {
+        try {
             mAppState.getDownloadIds().put(mRequestCode, ev.getId());
             startActivityForResult(ev.getIntent(), mRequestCode);
             mRequestCode++;
@@ -427,20 +388,19 @@ public class MainActivity
             SnackBarUtil.make(this, String.valueOf(e));
             mLog.log("Error launching Package Installer", String.valueOf(e), LogMessage.SEVERITY_ERROR);
         }
-	}
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Override
-	protected void onActivityResult(
-		int requestCode,
-		int resultCode,
-		Intent data
-	) {
-		super.onActivityResult(requestCode, resultCode, data);
+    @Override
+    protected void onActivityResult(
+            int requestCode,
+            int resultCode,
+            Intent data
+    ) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-		if (mAppState.getDownloadIds().containsKey(requestCode)) {
-		    long id = mAppState.getDownloadIds().get(requestCode);
+        if (mAppState.getDownloadIds().containsKey(requestCode)) {
+            long id = mAppState.getDownloadIds().get(requestCode);
             if (mAppState.getDownloadInfo().containsKey(id)) {
 
                 DownloadInfo i = mAppState.getDownloadInfo().get(mAppState.getDownloadIds().get(requestCode));
@@ -449,7 +409,7 @@ public class MainActivity
                     // When self updating
                     String version = InstalledAppUtil.getAppVersionName(this, i.getPackageName());
                     mBus.post(new SnackBarEvent(version.equals(
-                        i.getVersionName()) ? getString(R.string.install_success) : getString(R.string.install_failure)
+                            i.getVersionName()) ? getString(R.string.install_success) : getString(R.string.install_failure)
                     ));
                 } else {
                     // Normal installs coming with versionCode
@@ -461,11 +421,10 @@ public class MainActivity
                 mAppState.getDownloadInfo().remove(i);
                 mAppState.getDownloadIds().remove(requestCode);
             }
-		}
-	}
+        }
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+

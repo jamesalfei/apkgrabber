@@ -1,29 +1,25 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-      xmlns:app="http://schemas.android.com/apk/res-auto"
-      xmlns:tools="http://schemas.android.com/tools"
-      tools:context="de.apkgrabber.activity.MainActivity"
->
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="de.apkgrabber.activity.MainActivity">
     <item
         android:id="@+id/action_log"
+        android:icon="@drawable/ic_log"
         android:orderInCategory="3"
         android:title="@string/action_log"
-        android:icon="@drawable/ic_log"
-        app:showAsAction="collapseActionView"
-    />
+        app:showAsAction="collapseActionView" />
 
     <item
         android:id="@+id/action_about"
+        android:icon="@drawable/ic_info"
         android:orderInCategory="2"
         android:title="@string/tab_about"
-        android:icon="@drawable/ic_info"
-        app:showAsAction="collapseActionView"
-    />
+        app:showAsAction="collapseActionView" />
 
     <item
         android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings"
         android:orderInCategory="1"
         android:title="@string/action_settings"
-        android:icon="@drawable/ic_settings"
-        app:showAsAction="always"
-    />
+        app:showAsAction="always" />
 </menu>

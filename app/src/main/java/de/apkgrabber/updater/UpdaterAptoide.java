@@ -1,9 +1,7 @@
 package de.apkgrabber.updater;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.content.Context;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -11,16 +9,14 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 public class UpdaterAptoide
         extends UpdaterBase {
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     static final private String BaseUrl = "https://ws75.aptoide.com";
     static final private String Type = "Aptoide";
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public UpdaterAptoide(
             Context context,
@@ -30,7 +26,6 @@ public class UpdaterAptoide
         super(context, pname, cversion, Type);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     protected String getUrl(
@@ -39,7 +34,6 @@ public class UpdaterAptoide
         return BaseUrl + "/api/7/app/get/package_name=" + pname;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     protected UpdaterStatus parseUrl(
@@ -63,7 +57,7 @@ public class UpdaterAptoide
                 }
             }
         } catch (Exception e) {
-            if(appExists(url)) {
+            if (appExists(url)) {
                 mError = addCommonInfoToError(e);
                 return UpdaterStatus.STATUS_ERROR;
             }

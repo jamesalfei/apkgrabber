@@ -1,6 +1,5 @@
 package de.apkgrabber.fragment;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -16,7 +15,10 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
+import com.github.yeriomin.playstoreapi.DocV2;
+import com.github.yeriomin.playstoreapi.GooglePlayAPI;
+import com.github.yeriomin.playstoreapi.SearchIterator;
+import com.github.yeriomin.playstoreapi.SearchResponse;
 import de.apkgrabber.R;
 import de.apkgrabber.adapter.SearchAdapter;
 import de.apkgrabber.event.SearchTitleChange;
@@ -27,32 +29,21 @@ import de.apkgrabber.util.GooglePlayUtil;
 import de.apkgrabber.util.LogUtil;
 import de.apkgrabber.util.MyBus;
 import de.apkgrabber.util.SnackBarUtil;
-import com.github.yeriomin.playstoreapi.DocV2;
-import com.github.yeriomin.playstoreapi.GooglePlayAPI;
-import com.github.yeriomin.playstoreapi.SearchIterator;
-import com.github.yeriomin.playstoreapi.SearchResponse;
-
-import org.androidannotations.annotations.AfterViews;
-import org.androidannotations.annotations.Bean;
-import org.androidannotations.annotations.EFragment;
-import org.androidannotations.annotations.UiThread;
-import org.androidannotations.annotations.ViewById;
+import org.androidannotations.annotations.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @EFragment(R.layout.fragment_search)
 public class SearchFragment
-	extends Fragment
-{
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        extends Fragment {
 
-	@ViewById(R.id.list_view)
-	RecyclerView mRecyclerView;
 
-	@ViewById(R.id.input_search)
+    @ViewById(R.id.list_view)
+    RecyclerView mRecyclerView;
+
+    @ViewById(R.id.input_search)
     EditText mInputSearch;
 
     @ViewById(R.id.input_search_layout)
@@ -62,7 +53,7 @@ public class SearchFragment
     ProgressBar mProgressBar;
 
     @Bean
-	MyBus mBus;
+    MyBus mBus;
 
     @Bean
     LogUtil mLog;
@@ -70,12 +61,11 @@ public class SearchFragment
     @Bean
     SearchAdapter mAdapter;
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@AfterViews
-	void init(
-	) {
-		mBus.register(this);
+    @AfterViews
+    void init(
+    ) {
+        mBus.register(this);
 
         // Set the input action listener
         mInputSearch.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -96,24 +86,22 @@ public class SearchFragment
 
         // For smooth scrolling
         mRecyclerView.setNestedScrollingEnabled(false);
-	}
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@Override
-	public void onDestroy(
+    @Override
+    public void onDestroy(
     ) {
-		mBus.unregister(this);
-		super.onDestroy();
-	}
+        mBus.unregister(this);
+        super.onDestroy();
+    }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void search(
-        final String text
+            final String text
     ) {
-	    if (mProgressBar.getVisibility() == View.VISIBLE) {
-	        return;
+        if (mProgressBar.getVisibility() == View.VISIBLE) {
+            return;
         }
 
         setListAdapter(new ArrayList<InstalledApp>());
@@ -153,29 +141,28 @@ public class SearchFragment
         }).start();
     }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	@UiThread(propagation = UiThread.Propagation.REUSE)
-	protected void setListAdapter(
-		@NonNull List<InstalledApp> items
-	) {
-		if (mRecyclerView == null || mBus == null || mProgressBar == null) {
-			return;
-		}
+    @UiThread(propagation = UiThread.Propagation.REUSE)
+    protected void setListAdapter(
+            @NonNull List<InstalledApp> items
+    ) {
+        if (mRecyclerView == null || mBus == null || mProgressBar == null) {
+            return;
+        }
 
-		mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         if (new UpdaterOptions(getContext()).disableAnimations()) {
             mRecyclerView.setItemAnimator(null);
         } else {
             ((SimpleItemAnimator) mRecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
         }
-		mAdapter.init(getActivity(), mRecyclerView, items);
-		mRecyclerView.setAdapter(mAdapter);
-		mBus.post(new SearchTitleChange(getString(R.string.tab_search) + " (" + items.size() + ")"));
-		mProgressBar.setVisibility(View.GONE);
-	}
+        mAdapter.init(getActivity(), mRecyclerView, items);
+        mRecyclerView.setAdapter(mAdapter);
+        mBus.post(new SearchTitleChange(getString(R.string.tab_search) + " (" + items.size() + ")"));
+        mProgressBar.setVisibility(View.GONE);
+    }
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+

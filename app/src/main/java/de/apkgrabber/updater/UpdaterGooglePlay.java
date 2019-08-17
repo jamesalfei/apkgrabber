@@ -1,9 +1,9 @@
 package de.apkgrabber.updater;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.content.Context;
-
+import com.github.yeriomin.playstoreapi.*;
+import com.google.gson.Gson;
 import de.apkgrabber.model.InstalledApp;
 import de.apkgrabber.model.Update;
 import de.apkgrabber.service.AutomaticInstallerService_;
@@ -11,23 +11,14 @@ import de.apkgrabber.util.GenericCallback;
 import de.apkgrabber.util.GooglePlayUtil;
 import de.apkgrabber.util.ServiceUtil;
 
-import com.github.yeriomin.playstoreapi.AppDetails;
-import com.github.yeriomin.playstoreapi.BulkDetailsEntry;
-import com.github.yeriomin.playstoreapi.BulkDetailsResponse;
-import com.github.yeriomin.playstoreapi.DocV2;
-import com.github.yeriomin.playstoreapi.GooglePlayAPI;
-import com.google.gson.Gson;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-public class UpdaterGooglePlay
-{
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+public class UpdaterGooglePlay {
+
 
     private static GooglePlayAPI mApi = null;
 
@@ -37,13 +28,12 @@ public class UpdaterGooglePlay
     private UpdaterStatus mResultCode = UpdaterStatus.STATUS_UPDATE_FOUND;
     private List<Update> mUpdates = new ArrayList<>();
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public UpdaterGooglePlay(
-        Context context,
-        List<InstalledApp> apps,
-        ExecutorService executor,
-        final GenericCallback<Update> callback
+            Context context,
+            List<InstalledApp> apps,
+            ExecutorService executor,
+            final GenericCallback<Update> callback
     ) {
         try {
             // Store vars
@@ -98,21 +88,21 @@ public class UpdaterGooglePlay
                                         .getDocV2()
                                         .getDetails()
                                         .getAppDetails();
-                                if(appDetails.hasVersionString()) {
+                                if (appDetails.hasVersionString()) {
                                     versionString = appDetails.getVersionString();
                                 }
-                            } catch(IOException e) {
+                            } catch (IOException e) {
                                 mError += "failed to get version string for " + app.getPname() + "\n";
                             }
 
                             try {
                                 Update u = new Update(
-                                    app,
-                                    "",
-                                    versionString,
-                                    false,
-                                    "Cookie",
-                                    versionCode
+                                        app,
+                                        "",
+                                        versionString,
+                                        false,
+                                        "Cookie",
+                                        versionCode
                                 );
 
                                 if (details.getDetails().getAppDetails().hasRecentChangesHtml()) {
@@ -146,7 +136,6 @@ public class UpdaterGooglePlay
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void doAutomaticInstalls(
     ) {
@@ -157,19 +146,18 @@ public class UpdaterGooglePlay
                 String s = new Gson().toJson(mUpdates);
 
                 AutomaticInstallerService_
-                    .intent(mContext.getApplicationContext())
-                    .extra("updates", s)
-                    .start();
+                        .intent(mContext.getApplicationContext())
+                        .extra("updates", s)
+                        .start();
             }
         } catch (Exception e) {
 
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private InstalledApp getInstalledApp(
-        String pname
+            String pname
     ) {
         for (InstalledApp app : mApps) {
             if (app.getPname().equals(pname)) {
@@ -179,28 +167,24 @@ public class UpdaterGooglePlay
         return null;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public Throwable getResultError(
     ) {
         return new Throwable(mError + " | Source: GooglePlay");
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public UpdaterStatus getResultStatus(
     ) {
         return mResultCode;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public List<Update> getUpdates(
     ) {
         return mUpdates;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

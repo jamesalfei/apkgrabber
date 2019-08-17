@@ -1,6 +1,5 @@
 package de.apkgrabber.dialog
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 import android.app.Dialog
 import android.os.Bundle
@@ -8,48 +7,43 @@ import android.support.v4.app.DialogFragment
 import android.support.v7.app.AlertDialog
 import android.view.ContextThemeWrapper
 import android.view.View
+import com.github.yeriomin.playstoreapi.AuthException
 import de.apkgrabber.R
 import de.apkgrabber.model.Constants
 import de.apkgrabber.updater.UpdaterOptions
 import de.apkgrabber.util.DownloadUtil
 import de.apkgrabber.util.GooglePlayUtil
 import de.apkgrabber.util.ThemeUtil
-import com.github.yeriomin.playstoreapi.AuthException
 import kotlinx.android.synthetic.main.dialog_own_play.view.*
 import kotlin.concurrent.thread
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class OwnPlayAccountDialog
-    : DialogFragment()
-{
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    : DialogFragment() {
+
 
     companion object {
         const val ResultSuccess = 0
         const val ResultFailure = 1
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private var mView : View? = null
+    private var mView: View? = null
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     override fun onCreateDialog(
-        savedInstanceState: Bundle?
+            savedInstanceState: Bundle?
     ): Dialog {
         return AlertDialog.Builder(ContextThemeWrapper(context, ThemeUtil.getActivityThemeFromOptions(context)))
-            .setTitle("Setup Play Account")
-            .setView(getContentView())
-            .setNegativeButton(getString(R.string.get_token_cancel), null)
-            .setPositiveButton(getString(R.string.get_token_get_token), null)
-            .setNeutralButton(getString(R.string.get_token_help), null)
-            .setCancelable(false)
-            .create()
+                .setTitle("Setup Play Account")
+                .setView(getContentView())
+                .setNegativeButton(getString(R.string.get_token_cancel), null)
+                .setPositiveButton(getString(R.string.get_token_get_token), null)
+                .setNeutralButton(getString(R.string.get_token_help), null)
+                .setCancelable(false)
+                .create()
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     override fun onStart(
     ) {
@@ -62,20 +56,18 @@ class OwnPlayAccountDialog
         d.getButton(Dialog.BUTTON_NEUTRAL).setOnClickListener(this::onNeutralButton)
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Suppress("UNUSED_PARAMETER")
     private fun onNeutralButton(
-        view : View
+            view: View
     ) {
         DownloadUtil.launchBrowser(context, Constants.OwnAccountHelpURL)
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Suppress("UNUSED_PARAMETER")
     private fun onPositiveButtonClick(
-        view : View
+            view: View
     ) {
         thread {
             try {
@@ -86,9 +78,9 @@ class OwnPlayAccountDialog
                 }
 
                 val pair = GooglePlayUtil.getIdTokenPairFromEmailPassword(
-                    context,
-                    mView?.user_edit_text?.text.toString(),
-                    mView?.password_edit_text?.text.toString()
+                        context,
+                        mView?.user_edit_text?.text.toString(),
+                        mView?.password_edit_text?.text.toString()
                 )
 
                 val options: UpdaterOptions = UpdaterOptions(context)
@@ -106,8 +98,8 @@ class OwnPlayAccountDialog
                     mView?.progress_bar?.visibility = View.GONE
                     mView?.error_text?.text = context?.getString(R.string.get_token_launch_url)
                 }
-                mView?.postDelayed( {DownloadUtil.launchBrowser(context, ex.twoFactorUrl) }, 1000)
-            } catch (e : Exception) {
+                mView?.postDelayed({ DownloadUtil.launchBrowser(context, ex.twoFactorUrl) }, 1000)
+            } catch (e: Exception) {
                 mView?.post {
                     mView?.progress_bar?.visibility = View.GONE
                     mView?.error_text?.text = context?.getString(R.string.get_token_error)
@@ -116,26 +108,22 @@ class OwnPlayAccountDialog
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Suppress("UNUSED_PARAMETER")
     private fun onNegativeButtonClick(
-        view : View
+            view: View
     ) {
         targetFragment?.onActivityResult(Constants.OwnPlayAccountRequestCode, ResultFailure, null)
         dismiss()
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private fun getContentView(
-    ) : View
-    {
+    ): View {
         mView = activity?.layoutInflater?.inflate(R.layout.dialog_own_play, null, false)
         return mView as View
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
