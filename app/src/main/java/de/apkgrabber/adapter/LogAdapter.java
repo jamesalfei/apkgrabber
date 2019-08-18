@@ -1,6 +1,5 @@
 package de.apkgrabber.adapter;
 
-
 import android.app.Activity;
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -15,55 +14,37 @@ import org.androidannotations.annotations.Bean;
 import org.androidannotations.annotations.EBean;
 import org.androidannotations.annotations.RootContext;
 
-
 @EBean
-public class LogAdapter
-        extends ArrayAdapter<LogMessage> {
+public class LogAdapter extends ArrayAdapter<LogMessage> {
 
+	@RootContext
+	Activity context;
 
-    @RootContext
-    Activity context;
+	@Bean
+	MyBus mBus;
 
-    @Bean
-    MyBus mBus;
+	LogAdapter(Context context) {
+		super(context, 0);
+	}
 
+	@Override
+	@NonNull
+	public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+		LogView log;
 
-    LogAdapter(
-            Context context
-    ) {
-        super(context, 0);
-    }
+		if (convertView == null) {
+			log = LogView_.build(context);
+		} else {
+			log = (LogView) convertView;
+		}
 
+		log.bind(getItem(position));
 
-    @Override
-    @NonNull
-    public View getView(
-            int position,
-            View convertView,
-            @NonNull ViewGroup parent
-    ) {
-        LogView log;
+		return log;
+	}
 
-        if (convertView == null) {
-            log = LogView_.build(context);
-        } else {
-            log = (LogView) convertView;
-        }
-
-        log.bind(getItem(position));
-
-        return log;
-    }
-
-
-    @Override
-    public void notifyDataSetChanged(
-    ) {
-        super.notifyDataSetChanged();
-    }
-
-
+	@Override
+	public void notifyDataSetChanged() {
+		super.notifyDataSetChanged();
+	}
 }
-
-
-

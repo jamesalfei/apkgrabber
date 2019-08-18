@@ -1,6 +1,5 @@
 package de.apkgrabber.service;
 
-
 import android.app.IntentService;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -25,119 +24,92 @@ import org.androidannotations.annotations.EService;
 
 import java.util.Random;
 
-
 @EService
-public class SelfUpdateService
-        extends IntentService {
+public class SelfUpdateService extends IntentService {
 
+	static private final String BaseUrl = "https://api.github.com/";
+	static private final String LatestUrl = "repos/hemker/apkgrabber/releases/latest";
+	static private final String AcceptHeader = "application/vnd.github.v3+json";
 
-    static private final String BaseUrl = "https://api.github.com/";
-    static private final String LatestUrl = "repos/hemker/apkgrabber/releases/latest";
-    static private final String AcceptHeader = "application/vnd.github.v3+json";
+	@Bean
+	MyBus mBus;
 
+	@Bean
+	InstalledAppUtil mInstalledAppUtil;
 
-    @Bean
-    MyBus mBus;
+	@Bean
+	AppState mAppState;
 
-    @Bean
-    InstalledAppUtil mInstalledAppUtil;
+	@Bean
+	LogUtil mLogger;
 
-    @Bean
-    AppState mAppState;
+	public SelfUpdateService() {
+		super(SelfUpdateService.class.getSimpleName());
+	}
 
-    @Bean
-    LogUtil mLogger;
+	static public void launchSelfUpdate(Context context) {
+		// Self update check
+		if (new UpdaterOptions(context).selfUpdate()) {
+			if (!ServiceUtil.isServiceRunning(context, SelfUpdateService_.class)) {
+				SelfUpdateService_.intent(context).start();
+			}
+		}
+	}
 
+	private void doNotification(String newVersion, String changelog, String apkUrl) {
+		Context c = getApplicationContext();
+		NotificationCompat.Builder b = new NotificationCompat.Builder(getApplicationContext());
 
-    public SelfUpdateService(
-    ) {
-        super(SelfUpdateService.class.getSimpleName());
-    }
+		String title = String.format(c.getString(R.string.selfupdate_update), newVersion);
+		title = String.format("%s - %s", title, c.getString(R.string.selfupdate_click_to_install));
+		b.setContentTitle(title);
+		b.setContentText(changelog);
+		b.setSmallIcon(R.drawable.ic_update);
+		b.setAutoCancel(true);
+		b.setLargeIcon(BitmapFactory.decodeResource(c.getResources(), R.mipmap.ic_launcher));
+		b.setStyle(new NotificationCompat.BigTextStyle());
+		b.setChannelId(Constants.SelfUpdaterNotificationChannelId);
 
+		// Set the click intent
+		Intent intent = new Intent("de.apkgrabber.selfupdatenotification");
+		intent.setFlags(0);
+		intent.setClass(c, SelfUpdateNotificationReceiver_.class);
+		intent.putExtra("url", apkUrl);
+		intent.putExtra("versionName", newVersion);
+		b.setContentIntent(PendingIntent.getBroadcast(c, new Random().nextInt(), intent, 0));
 
-    static public void launchSelfUpdate(
-            Context context
-    ) {
-        // Self update check
-        if (new UpdaterOptions(context).selfUpdate()) {
-            if (!ServiceUtil.isServiceRunning(context, SelfUpdateService_.class)) {
-                SelfUpdateService_.intent(context).start();
-            }
-        }
-    }
+		// Launch notification
+		NotificationManager m = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+		m.notify(Constants.SelfUpdateNotificationId, b.build());
+	}
 
+	private void checkForUpdate() {
+		try {
+			OkHttpClient client = new OkHttpClient.Builder().build();
 
-    private void doNotification(
-            String newVersion,
-            String changelog,
-            String apkUrl
-    ) {
-        Context c = getApplicationContext();
-        NotificationCompat.Builder b = new NotificationCompat.Builder(getApplicationContext());
+			Request request = new Request.Builder().url(BaseUrl + LatestUrl).header("Accept", AcceptHeader).get().build();
 
-        String title = String.format(c.getString(R.string.selfupdate_update), newVersion);
-        title = String.format("%s - %s", title, c.getString(R.string.selfupdate_click_to_install));
-        b.setContentTitle(title);
-        b.setContentText(changelog);
-        b.setSmallIcon(R.drawable.ic_update);
-        b.setAutoCancel(true);
-        b.setLargeIcon(BitmapFactory.decodeResource(c.getResources(), R.mipmap.ic_launcher));
-        b.setStyle(new NotificationCompat.BigTextStyle());
-        b.setChannelId(Constants.SelfUpdaterNotificationChannelId);
+			Response response = client.newCall(request).execute();
+			Release r = new Gson().fromJson(response.body().string(), Release.class);
 
-        // Set the click intent
-        Intent intent = new Intent("de.apkgrabber.selfupdatenotification");
-        intent.setFlags(0);
-        intent.setClass(c, SelfUpdateNotificationReceiver_.class);
-        intent.putExtra("url", apkUrl);
-        intent.putExtra("versionName", newVersion);
-        b.setContentIntent(PendingIntent.getBroadcast(c, new Random().nextInt(), intent, 0));
+			if (r.getPrerelease() || r.getDraft()) {
+				return;
+			}
 
-        // Launch notification
-        NotificationManager m = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-        m.notify(Constants.SelfUpdateNotificationId, b.build());
-    }
+			int c = VersionUtil.compareVersion(VersionUtil.getVersionFromString(getPackageManager().getPackageInfo(getPackageName(), 0).versionName), VersionUtil.getVersionFromString(r.getTagName()));
 
+			if (c < 0) {
+				doNotification(r.getTagName(), r.getBody(), r.getAssets().get(0).getBrowserDownloadUrl());
+			}
+		} catch (Exception e) {
+			mLogger.log("checkForUpdate", String.valueOf(e), LogMessage.SEVERITY_ERROR);
+		}
+	}
 
-    private void checkForUpdate(
-    ) {
-        try {
-            OkHttpClient client = new OkHttpClient.Builder().build();
-
-            Request request = new Request.Builder()
-                    .url(BaseUrl + LatestUrl)
-                    .header("Accept", AcceptHeader)
-                    .get()
-                    .build();
-
-            Response response = client.newCall(request).execute();
-            Release r = new Gson().fromJson(response.body().string(), Release.class);
-
-            if (r.getPrerelease() || r.getDraft()) {
-                return;
-            }
-
-            int c = VersionUtil.compareVersion(
-                    VersionUtil.getVersionFromString(getPackageManager().getPackageInfo(getPackageName(), 0).versionName),
-                    VersionUtil.getVersionFromString(r.getTagName())
-            );
-
-            if (c < 0) {
-                doNotification(r.getTagName(), r.getBody(), r.getAssets().get(0).getBrowserDownloadUrl());
-            }
-        } catch (Exception e) {
-            mLogger.log("checkForUpdate", String.valueOf(e), LogMessage.SEVERITY_ERROR);
-        }
-    }
-
-
-    @Override
-    protected void onHandleIntent(
-            Intent intent
-    ) {
-        checkForUpdate();
-    }
-
+	@Override
+	protected void onHandleIntent(Intent intent) {
+		checkForUpdate();
+	}
 
 }
 

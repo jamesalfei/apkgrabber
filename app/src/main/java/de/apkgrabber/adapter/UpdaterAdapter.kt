@@ -21,8 +21,7 @@ import de.apkgrabber.util.MyBus
 import uy.kohesive.injekt.api.get
 
 
-class UpdaterAdapter
-    : RecyclerView.Adapter<UpdaterViewHolder> {
+class UpdaterAdapter : RecyclerView.Adapter<UpdaterViewHolder> {
 
 
     private var mUpdates: MutableList<Update>? = null
@@ -32,36 +31,27 @@ class UpdaterAdapter
     private var mMergedUpdates: MutableList<MergedUpdate> = mutableListOf()
 
 
-    constructor(
-            context: Context
-    ) {
+    constructor(context: Context) {
         mContext = context
         InjektUtil.addUpdaterAdapterSingleton(this)
         mBus.register(this)
     }
 
 
-    fun init(
-            view: RecyclerView,
-            updates: MutableList<Update>
-    ) {
+    fun init(view: RecyclerView, updates: MutableList<Update>) {
         mView = view
         setUpdates(updates)
     }
 
 
-    fun setUpdates(
-            updates: MutableList<Update>
-    ) {
+    fun setUpdates(updates: MutableList<Update>) {
         mUpdates = updates
         sort(true)
         notifyDataSetChanged()
     }
 
 
-    fun mergeUpdates(
-            updates: MutableList<Update>
-    ): MutableList<MergedUpdate> {
+    fun mergeUpdates(updates: MutableList<Update>): MutableList<MergedUpdate> {
         val mergedUpdates: MutableList<MergedUpdate> = mutableListOf()
         val skip: MutableList<Pair<String, Int>> = mutableListOf()
         updates.forEach {
@@ -76,9 +66,7 @@ class UpdaterAdapter
     }
 
 
-    fun sort(
-            b: Boolean
-    ) {
+    fun sort(b: Boolean) {
         // Filter and sort updates
         mUpdates = sortUpdates(mContext as Context, mUpdates!!)
         mMergedUpdates = mergeUpdates(mUpdates!!)
@@ -91,26 +79,19 @@ class UpdaterAdapter
 
 
     companion object {
-        fun sortUpdates(
-                context: Context,
-                updates: MutableList<Update>
-        ): MutableList<Update> {
+        fun sortUpdates(context: Context, updates: MutableList<Update>): MutableList<Update> {
             val l = UpdaterOptions(context).ignoreVersionList
-            return updates?.filter {
+            return updates.filter {
                 val ignore = IgnoreVersion(it.pname, it.newVersion, it.newVersionCode)
                 l.find {
-                    it.packageName == ignore.packageName
-                            && it.versionName == ignore.versionName
-                            && it.versionCode == ignore.versionCode
+                    it.packageName == ignore.packageName && it.versionName == ignore.versionName && it.versionCode == ignore.versionCode
                 } == null
-            }?.sortedWith(compareBy(Update::isBeta).thenBy(Update::getName))?.toMutableList()
+            }.sortedWith(compareBy(Update::isBeta).thenBy(Update::getName)).toMutableList()
         }
     }
 
 
-    fun addUpdate(
-            update: Update
-    ) {
+    fun addUpdate(update: Update) {
         mUpdates?.add(update)
         sort(true)
         val index = mUpdates?.indexOf(update) as Int
@@ -121,9 +102,7 @@ class UpdaterAdapter
     }
 
 
-    fun removeUpdate(
-            u: Update
-    ) {
+    fun removeUpdate(u: Update) {
         try {
             val i = mUpdates?.indexOf(u) as Int
             mUpdates?.removeAt(i)
@@ -135,37 +114,27 @@ class UpdaterAdapter
     }
 
 
-    override fun getItemCount(
-    ): Int {
+    override fun getItemCount(): Int {
         return mMergedUpdates.size
     }
 
 
-    override fun onBindViewHolder(
-            holder: UpdaterViewHolder,
-            position: Int
-    ) {
-        holder?.bind(this, mMergedUpdates[position])
+    override fun onBindViewHolder(holder: UpdaterViewHolder, position: Int) {
+        holder.bind(this, mMergedUpdates[position])
 
         if (position == 0) {
-            holder?.setTopMargin(8)
+            holder.setTopMargin(8)
         }
     }
 
 
-    override fun onCreateViewHolder(
-            parent: ViewGroup,
-            viewType: Int
-    ): UpdaterViewHolder {
-        val v = LayoutInflater.from(parent?.context).inflate(R.layout.updater_item, parent, false)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UpdaterViewHolder {
+        val v = LayoutInflater.from(parent.context).inflate(R.layout.updater_item, parent, false)
         return UpdaterViewHolder(v)
     }
 
 
-    fun getIndexForUpdate(
-            u: Update,
-            callback: (Int) -> Unit
-    ) {
+    fun getIndexForUpdate(u: Update, callback: (Int) -> Unit) {
         mMergedUpdates.forEachIndexed { i, it ->
             if (it.updateList.contains(u)) {
                 callback(i)
@@ -176,9 +145,7 @@ class UpdaterAdapter
 
 
     @Subscribe
-    fun onInstallAppEven(
-            ev: InstallAppEvent
-    ) {
+    fun onInstallAppEven(ev: InstallAppEvent) {
         mUpdates?.forEachIndexed { i, app ->
             if (app.installStatus.id == ev.id) {
                 app.installStatus.id = 0

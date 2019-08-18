@@ -10,24 +10,16 @@ class CollectionUtil {
     companion object {
 
 
-        fun sortAppExistsResponseApk(
-                list: List<AppExistsResponseApk>
-        ): List<AppExistsResponseApk> {
+        fun sortAppExistsResponseApk(list: List<AppExistsResponseApk>): List<AppExistsResponseApk> {
             try {
-                return list.sortedWith(
-                        compareByDescending<AppExistsResponseApk> { it.minapi }
-                                .thenByDescending { it.dpis[0] }
-                                .thenByDescending { it.arches[0] }
-                )
+                return list.sortedWith(compareByDescending<AppExistsResponseApk> { it.minapi }.thenByDescending { it.dpis[0] }.thenByDescending { it.arches[0] })
             } catch (e: Exception) {
                 return list
             }
         }
 
 
-        fun getFirstAppExistResponse(
-                list: List<AppExistsResponseApk>
-        ): AppExistsResponseApk {
+        fun getFirstAppExistResponse(list: List<AppExistsResponseApk>): AppExistsResponseApk {
             return list.firstOrNull { it.dpis[0] != "nodpi" } ?: list.first()
         }
 

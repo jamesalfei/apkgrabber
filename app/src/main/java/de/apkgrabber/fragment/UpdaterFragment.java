@@ -1,6 +1,5 @@
 package de.apkgrabber.fragment;
 
-
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -30,254 +29,210 @@ import java.util.List;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
-
 @EFragment(R.layout.fragment_updater)
-public class UpdaterFragment
-        extends Fragment {
+public class UpdaterFragment extends Fragment {
 
+	@ViewById(R.id.list_view)
+	RecyclerView mRecyclerView;
 
-    @ViewById(R.id.list_view)
-    RecyclerView mRecyclerView;
+	@ViewById(R.id.swipe_container_updates)
+	SwipeRefreshLayout swipeRefreshLayout;
 
-    @ViewById(R.id.swipe_container_updates)
-    SwipeRefreshLayout swipeRefreshLayout;
+	@ViewById(R.id.container)
+	LinearLayout mContainer;
 
-    @ViewById(R.id.container)
-    LinearLayout mContainer;
+	@ViewById(R.id.loader_container)
+	CardView mLoaderContainer;
 
-    @ViewById(R.id.loader_container)
-    CardView mLoaderContainer;
+	@ViewById(R.id.loader_text)
+	TextView mLoaderText;
 
-    @ViewById(R.id.loader_text)
-    TextView mLoaderText;
+	@ViewById(R.id.no_updates_text)
+	TextView mNoUpdatesText;
 
-    @ViewById(R.id.no_updates_text)
-    TextView mNoUpdatesText;
+	@ViewById(R.id.loader)
+	ProgressBar mLoader;
 
-    @ViewById(R.id.loader)
-    ProgressBar mLoader;
+	@Bean
+	InstalledAppUtil mInstalledAppUtil;
 
-    @Bean
-    InstalledAppUtil mInstalledAppUtil;
+	@ColorRes(R.color.colorPrimary)
+	int mPrimaryColor;
 
-    @ColorRes(R.color.colorPrimary)
-    int mPrimaryColor;
+	@Bean
+	MyBus mBus;
 
-    @Bean
-    MyBus mBus;
+	@Bean
+	AppState mAppState;
 
-    @Bean
-    AppState mAppState;
+	UpdaterAdapter mAdapter;
 
-    UpdaterAdapter mAdapter;
+	private int mProgressCount = 0;
+	private int mProgressMax = 0;
 
-    private int mProgressCount = 0;
-    private int mProgressMax = 0;
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		mAdapter = new UpdaterAdapter(getContext());
+	}
 
+	@UiThread(propagation = UiThread.Propagation.REUSE)
+	void initProgressBar() {
+		try {
+			mLoader.getIndeterminateDrawable().setColorFilter(ColorUtil.getColorFromTheme(getActivity().getTheme(), R.attr.colorAccent), android.graphics.PorterDuff.Mode.MULTIPLY);
+			setProgressBarProgress(mProgressCount, mProgressMax);
+			if (mProgressMax == 0 && mProgressCount == 0) {
+				setProgressBarVisibility(GONE);
+			} else {
+				setProgressBarVisibility(VISIBLE);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
-    public void onCreate(
-            Bundle savedInstanceState
-    ) {
-        super.onCreate(savedInstanceState);
-        mAdapter = new UpdaterAdapter(getContext());
-    }
+	@UiThread(propagation = UiThread.Propagation.REUSE)
+	void setProgressBarVisibility(int v) {
+		try {
+			AnimationUtil.startSlideAnimation(getContext(), mLoaderContainer);
+			mLoaderContainer.setVisibility(v);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
+	@UiThread(propagation = UiThread.Propagation.REUSE)
+	void setProgressBarProgress(int progress, int max) {
+		try {
+			AnimationUtil.startSlideAnimation(getContext(), mLoaderContainer);
 
-    @UiThread(propagation = UiThread.Propagation.REUSE)
-    void initProgressBar(
-    ) {
-        try {
-            mLoader.getIndeterminateDrawable().setColorFilter(
-                    ColorUtil.getColorFromTheme(getActivity().getTheme(), R.attr.colorAccent),
-                    android.graphics.PorterDuff.Mode.MULTIPLY
-            );
-            setProgressBarProgress(mProgressCount, mProgressMax);
-            if (mProgressMax == 0 && mProgressCount == 0) {
-                setProgressBarVisibility(GONE);
-            } else {
-                setProgressBarVisibility(VISIBLE);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+			// Change progress bar
+			mLoader.setMax(max);
+			mLoader.setProgress(progress);
+			if (progress == 0 && max == 0) {
+				mLoader.setIndeterminate(true);
+			} else {
+				mLoader.setIndeterminate(false);
+			}
 
+			// Change text
+			mLoaderText.setText(progress + "/" + max);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
-    @UiThread(propagation = UiThread.Propagation.REUSE)
-    void setProgressBarVisibility(
-            int v
-    ) {
-        try {
-            AnimationUtil.startSlideAnimation(getContext(), mLoaderContainer);
-            mLoaderContainer.setVisibility(v);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+	@Subscribe
+	public void onUpdateStartEvent(UpdateStartEvent ev) {
+		mAdapter.setUpdates(new ArrayList<Update>());
+		sendUpdateTitleEvent();
+		mProgressCount = 0;
+		mProgressMax = ev.getNumUpdates();
+		setProgressBarProgress(mProgressCount, mProgressMax);
+		setProgressBarVisibility(View.VISIBLE);
+		mNoUpdatesText.setVisibility(GONE);
+	}
 
+	@Subscribe
+	public void onUpdateStopEvent(UpdateStopEvent ev) {
+		mProgressCount = 0;
+		mProgressMax = 0;
+		setProgressBarVisibility(GONE);
+		setProgressBarProgress(mProgressCount, mProgressMax);
+		String m = ev.getMessage();
+		if (m != null && !m.isEmpty()) {
+			SnackBarUtil.make(getActivity(), m);
+		}
+	}
 
-    @UiThread(propagation = UiThread.Propagation.REUSE)
-    void setProgressBarProgress(
-            int progress,
-            int max
-    ) {
-        try {
-            AnimationUtil.startSlideAnimation(getContext(), mLoaderContainer);
+	@Subscribe
+	public void onUpdateFinalProgressEvent(UpdateFinalProgressEvent ev) {
+		List<Update> updates = ev.getUpdates();
 
-            // Change progress bar
-            mLoader.setMax(max);
-            mLoader.setProgress(progress);
-            if (progress == 0 && max == 0) {
-                mLoader.setIndeterminate(true);
-            } else {
-                mLoader.setIndeterminate(false);
-            }
+		if (mAdapter.getItemCount() < updates.size()) {
+			mAdapter.setUpdates(updates);
+		}
+		if (updates.isEmpty()) {
+			mNoUpdatesText.setVisibility(VISIBLE);
+		}
 
-            // Change text
-            mLoaderText.setText(progress + "/" + max);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+		sendUpdateTitleEvent();
+		swipeRefreshLayout.setRefreshing(false);
+	}
 
+	@Subscribe
+	public void onUpdateProgressEvent(UpdateProgressEvent ev) {
+		mProgressCount++;
+		setProgressBarProgress(mProgressCount, mProgressMax);
+		if (ev.getUpdate() != null) {
+			mAdapter.addUpdate(ev.getUpdate());
+		}
+		sendUpdateTitleEvent();
+	}
 
-    @Subscribe
-    public void onUpdateStartEvent(
-            UpdateStartEvent ev
-    ) {
-        mAdapter.setUpdates(new ArrayList<Update>());
-        sendUpdateTitleEvent();
-        mProgressCount = 0;
-        mProgressMax = ev.getNumUpdates();
-        setProgressBarProgress(mProgressCount, mProgressMax);
-        setProgressBarVisibility(View.VISIBLE);
-        mNoUpdatesText.setVisibility(GONE);
-    }
+	@Subscribe
+	public void onRefreshUpdateTitle(RefreshUpdateTitle ev) {
+		sendUpdateTitleEvent();
+	}
 
+	@Override
+	public void onStop() {
+		mBus.unregister(this);
+		super.onStop();
+	}
 
-    @Subscribe
-    public void onUpdateStopEvent(
-            UpdateStopEvent ev
-    ) {
-        mProgressCount = 0;
-        mProgressMax = 0;
-        setProgressBarVisibility(GONE);
-        setProgressBarProgress(mProgressCount, mProgressMax);
-        String m = ev.getMessage();
-        if (m != null && !m.isEmpty()) {
-            SnackBarUtil.make(getActivity(), m);
-        }
-    }
+	@Override
+	public void onStart() {
+		super.onStart();
+		mBus.register(this);
+	}
 
+	@Override
+	public void onResume() {
+		super.onResume();
+	}
 
-    @Subscribe
-    public void onUpdateFinalProgressEvent(
-            UpdateFinalProgressEvent ev
-    ) {
-        List<Update> updates = ev.getUpdates();
+	private void sendUpdateTitleEvent() {
+		mBus.post(new UpdaterTitleChange(getString(R.string.tab_updates) + " (" + mAdapter.getItemCount() + ")"));
+	}
 
-        if (mAdapter.getItemCount() < updates.size()) {
-            mAdapter.setUpdates(updates);
-        }
-        if (updates.isEmpty()) {
-            mNoUpdatesText.setVisibility(VISIBLE);
-        }
+	private void loadData() {
+		// Check if we are updating
+		mProgressCount = mAppState.getUpdateProgress();
+		mProgressMax = mAppState.getUpdateMax();
 
-        sendUpdateTitleEvent();
-        swipeRefreshLayout.setRefreshing(false);
-    }
+		// Get the updates and add them to the adapter
+		List<Update> updates = mAppState.getUpdates();
+		if (!updates.isEmpty()) {
+			mAdapter.setUpdates(updates);
+			sendUpdateTitleEvent();
+		}
 
+	}
 
-    @Subscribe
-    public void onUpdateProgressEvent(
-            UpdateProgressEvent ev
-    ) {
-        mProgressCount++;
-        setProgressBarProgress(mProgressCount, mProgressMax);
-        if (ev.getUpdate() != null) {
-            mAdapter.addUpdate(ev.getUpdate());
-        }
-        sendUpdateTitleEvent();
-    }
+	@AfterViews
+	void init() {
+		mAdapter.init(mRecyclerView, new ArrayList<Update>());
+		mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+		if (new UpdaterOptions(getContext()).disableAnimations()) {
+			mRecyclerView.setItemAnimator(null);
+		} else {
+			((SimpleItemAnimator) mRecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+		}
+		mRecyclerView.setAdapter(mAdapter);
 
+		swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+			@Override
+			public void onRefresh() {
+				UpdaterService_.intent(getContext()).start();
+			}
+		});
 
-    @Subscribe
-    public void onRefreshUpdateTitle(
-            RefreshUpdateTitle ev
-    ) {
-        sendUpdateTitleEvent();
-    }
+		// Load data
+		loadData();
 
+		initProgressBar();
 
-    @Override
-    public void onStop() {
-        mBus.unregister(this);
-        super.onStop();
-    }
-
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        mBus.register(this);
-    }
-
-
-    @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-
-    private void sendUpdateTitleEvent(
-    ) {
-        mBus.post(new UpdaterTitleChange(getString(R.string.tab_updates) + " (" + mAdapter.getItemCount() + ")"));
-    }
-
-
-    private void loadData(
-    ) {
-        // Check if we are updating
-        mProgressCount = mAppState.getUpdateProgress();
-        mProgressMax = mAppState.getUpdateMax();
-
-        // Get the updates and add them to the adapter
-        List<Update> updates = mAppState.getUpdates();
-        if (!updates.isEmpty()) {
-            mAdapter.setUpdates(updates);
-            sendUpdateTitleEvent();
-        }
-
-    }
-
-
-    @AfterViews
-    void init(
-    ) {
-        mAdapter.init(mRecyclerView, new ArrayList<Update>());
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        if (new UpdaterOptions(getContext()).disableAnimations()) {
-            mRecyclerView.setItemAnimator(null);
-        } else {
-            ((SimpleItemAnimator) mRecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
-        }
-        mRecyclerView.setAdapter(mAdapter);
-
-        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                UpdaterService_.intent(getContext()).start();
-            }
-        });
-
-        // Load data
-        loadData();
-
-        initProgressBar();
-
-
-    }
-
+	}
 
 }
 

@@ -1,158 +1,153 @@
 package de.apkgrabber.model.GitHub;
 
-
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-
 public class Asset {
 
+	@SerializedName("url")
+	@Expose
+	private String url;
 
-    @SerializedName("url")
-    @Expose
-    private String url;
+	@SerializedName("browser_download_url")
+	@Expose
+	private String browserDownloadUrl;
 
-    @SerializedName("browser_download_url")
-    @Expose
-    private String browserDownloadUrl;
+	@SerializedName("id")
+	@Expose
+	private Integer id;
 
-    @SerializedName("id")
-    @Expose
-    private Integer id;
+	@SerializedName("name")
+	@Expose
+	private String name;
 
-    @SerializedName("name")
-    @Expose
-    private String name;
+	@SerializedName("label")
+	@Expose
+	private String label;
 
-    @SerializedName("label")
-    @Expose
-    private String label;
+	@SerializedName("state")
+	@Expose
+	private String state;
 
-    @SerializedName("state")
-    @Expose
-    private String state;
+	@SerializedName("content_type")
+	@Expose
+	private String contentType;
 
-    @SerializedName("content_type")
-    @Expose
-    private String contentType;
+	@SerializedName("size")
+	@Expose
+	private Integer size;
 
-    @SerializedName("size")
-    @Expose
-    private Integer size;
+	@SerializedName("download_count")
+	@Expose
+	private Integer downloadCount;
 
-    @SerializedName("download_count")
-    @Expose
-    private Integer downloadCount;
+	@SerializedName("created_at")
+	@Expose
+	private String createdAt;
 
-    @SerializedName("created_at")
-    @Expose
-    private String createdAt;
+	@SerializedName("updated_at")
+	@Expose
+	private String updatedAt;
 
-    @SerializedName("updated_at")
-    @Expose
-    private String updatedAt;
+	@SerializedName("uploader")
+	@Expose
+	private Uploader uploader;
 
-    @SerializedName("uploader")
-    @Expose
-    private Uploader uploader;
+	public String getUrl() {
+		return url;
+	}
 
+	public void setUrl(String url) {
+		this.url = url;
+	}
 
-    public String getUrl() {
-        return url;
-    }
+	public String getBrowserDownloadUrl() {
+		return browserDownloadUrl;
+	}
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
+	public void setBrowserDownloadUrl(String browserDownloadUrl) {
+		this.browserDownloadUrl = browserDownloadUrl;
+	}
 
-    public String getBrowserDownloadUrl() {
-        return browserDownloadUrl;
-    }
+	public Integer getId() {
+		return id;
+	}
 
-    public void setBrowserDownloadUrl(String browserDownloadUrl) {
-        this.browserDownloadUrl = browserDownloadUrl;
-    }
+	public void setId(Integer id) {
+		this.id = id;
+	}
 
-    public Integer getId() {
-        return id;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public String getName() {
-        return name;
-    }
+	public String getLabel() {
+		return label;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public void setLabel(String label) {
+		this.label = label;
+	}
 
-    public String getLabel() {
-        return label;
-    }
+	public String getState() {
+		return state;
+	}
 
-    public void setLabel(String label) {
-        this.label = label;
-    }
+	public void setState(String state) {
+		this.state = state;
+	}
 
-    public String getState() {
-        return state;
-    }
+	public String getContentType() {
+		return contentType;
+	}
 
-    public void setState(String state) {
-        this.state = state;
-    }
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
 
-    public String getContentType() {
-        return contentType;
-    }
+	public Integer getSize() {
+		return size;
+	}
 
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
-    }
+	public void setSize(Integer size) {
+		this.size = size;
+	}
 
-    public Integer getSize() {
-        return size;
-    }
+	public Integer getDownloadCount() {
+		return downloadCount;
+	}
 
-    public void setSize(Integer size) {
-        this.size = size;
-    }
+	public void setDownloadCount(Integer downloadCount) {
+		this.downloadCount = downloadCount;
+	}
 
-    public Integer getDownloadCount() {
-        return downloadCount;
-    }
+	public String getCreatedAt() {
+		return createdAt;
+	}
 
-    public void setDownloadCount(Integer downloadCount) {
-        this.downloadCount = downloadCount;
-    }
+	public void setCreatedAt(String createdAt) {
+		this.createdAt = createdAt;
+	}
 
-    public String getCreatedAt() {
-        return createdAt;
-    }
+	public String getUpdatedAt() {
+		return updatedAt;
+	}
 
-    public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt;
-    }
+	public void setUpdatedAt(String updatedAt) {
+		this.updatedAt = updatedAt;
+	}
 
-    public String getUpdatedAt() {
-        return updatedAt;
-    }
+	public Uploader getUploader() {
+		return uploader;
+	}
 
-    public void setUpdatedAt(String updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Uploader getUploader() {
-        return uploader;
-    }
-
-    public void setUploader(Uploader uploader) {
-        this.uploader = uploader;
-    }
-
+	public void setUploader(Uploader uploader) {
+		this.uploader = uploader;
+	}
 
 }
 

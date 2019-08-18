@@ -1,6 +1,5 @@
 package de.apkgrabber.adapter;
 
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -28,253 +27,197 @@ import org.androidannotations.annotations.UiThread;
 
 import java.util.List;
 
-
 @EBean
-public class SearchAdapter
-        extends RecyclerView.Adapter<SearchAdapter.InstalledAppViewHolder>
-        implements View.OnClickListener {
+public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.InstalledAppViewHolder> implements View.OnClickListener {
 
+	@Bean
+	LogUtil mLog;
+	@Bean
+	MyBus mBus;
+	@Bean
+	AppState mAppState;
+	private List<InstalledApp> mApps;
+	private Context mContext;
+	private RecyclerView mView;
+	private SearchAdapter mAdapter;
+	private Activity mActivity;
 
-    @Bean
-    LogUtil mLog;
-    @Bean
-    MyBus mBus;
-    @Bean
-    AppState mAppState;
-    private List<InstalledApp> mApps;
-    private Context mContext;
-    private RecyclerView mView;
-    private SearchAdapter mAdapter;
-    private Activity mActivity;
+	public SearchAdapter(Context context) {
+		mContext = context;
+	}
 
+	@Override
+	public InstalledAppViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+		View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.installed_app_item, parent, false);
+		return new InstalledAppViewHolder(v);
+	}
 
-    public SearchAdapter(
-            Context context
-    ) {
-        mContext = context;
-    }
+	private CardView getInstalledAppViewParent(View v) {
+		while (v != null) {
+			v = (View) v.getParent();
+			if (v instanceof CardView) {
+				return (CardView) v;
+			}
+		}
+		return null;
+	}
 
-    @Override
-    public InstalledAppViewHolder onCreateViewHolder(
-            ViewGroup parent,
-            int viewType
-    ) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.installed_app_item, parent, false);
-        return new InstalledAppViewHolder(v);
-    }
+	@Override
+	public void onClick(View view) {
+		// Get the InstalledAppView parent
+		CardView parent = getInstalledAppViewParent(view);
+		if (parent == null) {
+			return;
+		}
 
-    private CardView getInstalledAppViewParent(
-            View v
-    ) {
-        while (v != null) {
-            v = (View) v.getParent();
-            if (v instanceof CardView) {
-                return (CardView) v;
-            }
-        }
-        return null;
-    }
+		final InstalledApp app = mApps.get(mView.getChildLayoutPosition(parent));
+		final InstalledAppViewHolder holder = (InstalledAppViewHolder) mView.getChildViewHolder(parent);
+		final int pos = mView.getChildAdapterPosition(parent);
 
-    @Override
-    public void onClick(
-            View view
-    ) {
-        // Get the InstalledAppView parent
-        CardView parent = getInstalledAppViewParent(view);
-        if (parent == null) {
-            return;
-        }
+		// Check if we are already installing
+		if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLING) {
+			return;
+		} else {
+			changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALLING, 0, pos);
+		}
 
-        final InstalledApp app = mApps.get(mView.getChildLayoutPosition(parent));
-        final InstalledAppViewHolder holder = (InstalledAppViewHolder) mView.getChildViewHolder(parent);
-        final int pos = mView.getChildAdapterPosition(parent);
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					AndroidAppDeliveryData data = GooglePlayUtil.getAppDeliveryData(GooglePlayUtil.getApi(mContext), app.getPname());
 
-        // Check if we are already installing
-        if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLING) {
-            return;
-        } else {
-            changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALLING, 0, pos);
-        }
+					long id = DownloadUtil.downloadFile(mContext, data.getDownloadUrl(), data.getDownloadAuthCookie(0).getName() + "=" + data.getDownloadAuthCookie(0).getValue(), app.getPname() + " " + app.getVersionCode());
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    AndroidAppDeliveryData data = GooglePlayUtil.getAppDeliveryData(
-                            GooglePlayUtil.getApi(mContext),
-                            app.getPname()
-                    );
+					mAppState.getDownloadInfo().put(id, new DownloadInfo(app.getPname(), app.getVersionCode(), app.getVersion()));
 
-                    long id = DownloadUtil.downloadFile(
-                            mContext,
-                            data.getDownloadUrl(),
-                            data.getDownloadAuthCookie(0).getName() + "=" + data.getDownloadAuthCookie(0).getValue(),
-                            app.getPname() + " " + app.getVersionCode()
-                    );
+					changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALLING, id, pos);
+				} catch (GooglePlayException gex) {
+					SnackBarUtil.make(mActivity, String.valueOf(gex.getMessage()));
+					mLog.log("SearchAdapter", String.valueOf(gex), LogMessage.SEVERITY_ERROR);
+					changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALL, 0, pos);
+				} catch (Exception e) {
+					SnackBarUtil.make(mActivity, "Error downloading.");
+					mLog.log("SearchAdapter", String.valueOf(e), LogMessage.SEVERITY_ERROR);
+					changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALL, 0, pos);
+				}
+			}
+		}).start();
 
-                    mAppState.getDownloadInfo().put(
-                            id,
-                            new DownloadInfo(app.getPname(), app.getVersionCode(), app.getVersion())
-                    );
+	}
 
-                    changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALLING, id, pos);
-                } catch (GooglePlayException gex) {
-                    SnackBarUtil.make(mActivity, String.valueOf(gex.getMessage()));
-                    mLog.log("SearchAdapter", String.valueOf(gex), LogMessage.SEVERITY_ERROR);
-                    changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALL, 0, pos);
-                } catch (Exception e) {
-                    SnackBarUtil.make(mActivity, "Error downloading.");
-                    mLog.log("SearchAdapter", String.valueOf(e), LogMessage.SEVERITY_ERROR);
-                    changeAppInstallStatusAndNotify(app, InstallStatus.STATUS_INSTALL, 0, pos);
-                }
-            }
-        }).start();
+	@Override
+	public void onBindViewHolder(InstalledAppViewHolder holder, int position) {
+		holder.bind(mApps.get(position));
 
-    }
+		if (position == 0) {
+			holder.setTopMargin(8);
+		}
+	}
 
-    @Override
-    public void onBindViewHolder(
-            InstalledAppViewHolder holder,
-            int position
-    ) {
-        holder.bind(mApps.get(position));
+	@Override
+	public int getItemCount() {
+		return mApps.size();
+	}
 
-        if (position == 0) {
-            holder.setTopMargin(8);
-        }
-    }
+	public void init(Activity activity, RecyclerView view, List<InstalledApp> apps) {
+		mActivity = activity;
+		mAdapter = this;
+		mView = view;
+		mApps = InstalledAppUtil.sort(mContext, apps);
 
-    @Override
-    public int getItemCount(
-    ) {
-        return mApps.size();
-    }
+		try {
+			mBus.register(this);
+		} catch (Exception ignored) {
+		}
+	}
 
-    public void init(
-            Activity activity,
-            RecyclerView view,
-            List<InstalledApp> apps
-    ) {
-        mActivity = activity;
-        mAdapter = this;
-        mView = view;
-        mApps = InstalledAppUtil.sort(mContext, apps);
+	@UiThread
+	protected void changeAppInstallStatusAndNotify(final InstalledApp app, int status, long id, final int pos) {
+		if (app.getInstallStatus() != null) {
+			app.getInstallStatus().setId(id);
+			app.getInstallStatus().setStatus(status);
+			notifyItemChanged(pos);
+		}
+	}
 
-        try {
-            mBus.register(this);
-        } catch (Exception ignored) {
-        }
-    }
+	@Subscribe
+	public void onInstallEvent(InstallAppEvent ev) {
+		for (int i = 0; i < mApps.size(); i++) {
+			InstalledApp app = mApps.get(i);
+			if (app.getInstallStatus().getId() == ev.getId() || app.getPname().equals(ev.getPackageName())) {
+				app.getInstallStatus().setId(0);
+				if (ev.isSuccess()) {
+					app.getInstallStatus().setStatus(InstallStatus.STATUS_INSTALLED);
+					mBus.post(new SnackBarEvent(mContext.getString(R.string.install_success)));
+				} else {
+					// If the app is already set as installed, do nothing
+					if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLING) {
+						app.getInstallStatus().setStatus(InstallStatus.STATUS_INSTALL);
+						mBus.post(new SnackBarEvent(mContext.getString(R.string.install_failure)));
+					}
+				}
+				notifyItemChanged(i);
 
-    @UiThread
-    protected void changeAppInstallStatusAndNotify(
-            final InstalledApp app,
-            int status,
-            long id,
-            final int pos
-    ) {
-        if (app.getInstallStatus() != null) {
-            app.getInstallStatus().setId(id);
-            app.getInstallStatus().setStatus(status);
-            notifyItemChanged(pos);
-        }
-    }
+				// Delete file
+				DownloadUtil.deleteDownloadedFile(mContext, app.getInstallStatus().getId());
+			}
+		}
+	}
 
-    @Subscribe
-    public void onInstallEvent(
-            InstallAppEvent ev
-    ) {
-        for (int i = 0; i < mApps.size(); i++) {
-            InstalledApp app = mApps.get(i);
-            if (app.getInstallStatus().getId() == ev.getId() || app.getPname().equals(ev.getPackageName())) {
-                app.getInstallStatus().setId(0);
-                if (ev.isSuccess()) {
-                    app.getInstallStatus().setStatus(InstallStatus.STATUS_INSTALLED);
-                    mBus.post(new SnackBarEvent(mContext.getString(R.string.install_success)));
-                } else {
-                    // If the app is already set as installed, do nothing
-                    if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLING) {
-                        app.getInstallStatus().setStatus(InstallStatus.STATUS_INSTALL);
-                        mBus.post(new SnackBarEvent(mContext.getString(R.string.install_failure)));
-                    }
-                }
-                notifyItemChanged(i);
+	public class InstalledAppViewHolder extends RecyclerView.ViewHolder {
 
-                // Delete file
-                DownloadUtil.deleteDownloadedFile(mContext, app.getInstallStatus().getId());
-            }
-        }
-    }
+		private View mView;
+		private TextView mName;
+		private TextView mPname;
+		private TextView mVersion;
+		private ImageView mIcon;
+		private Button mActionOneButton;
+		private ProgressBar mActionOneProgressBar;
 
-    public class InstalledAppViewHolder
-            extends RecyclerView.ViewHolder {
+		InstalledAppViewHolder(View view) {
+			super(view);
+			mView = view;
+		}
 
+		public void bind(InstalledApp app) {
+			// Get views
+			mName = mView.findViewById(R.id.installed_app_name);
+			mPname = mView.findViewById(R.id.installed_app_pname);
+			mVersion = mView.findViewById(R.id.installed_app_version);
+			mIcon = mView.findViewById(R.id.installed_app_icon);
+			mActionOneButton = mView.findViewById(R.id.action_one_button);
+			mActionOneProgressBar = mView.findViewById(R.id.action_one_progressbar);
 
-        private View mView;
-        private TextView mName;
-        private TextView mPname;
-        private TextView mVersion;
-        private ImageView mIcon;
-        private Button mActionOneButton;
-        private ProgressBar mActionOneProgressBar;
+			mName.setText(app.getName());
+			mPname.setText(app.getPname());
+			mVersion.setText(app.getVersion());
 
+			try {
+				Drawable icon = mContext.getPackageManager().getApplicationIcon(app.getPname());
+				mIcon.setImageDrawable(icon);
+			} catch (PackageManager.NameNotFoundException e) {
+				mIcon.setImageResource(R.drawable.ic_android);
+			}
 
-        InstalledAppViewHolder(
-                View view
-        ) {
-            super(view);
-            mView = view;
-        }
+			// Install button and its progress bar
+			mActionOneButton.setVisibility(View.VISIBLE);
+			mActionOneProgressBar.setVisibility(View.INVISIBLE);
+			mActionOneButton.setOnClickListener(null);
+			if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALL) {
+				mActionOneButton.setText(R.string.action_play);
+				mActionOneButton.setOnClickListener(mAdapter);
+			} else if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLED) {
+				mActionOneButton.setText(R.string.action_installed);
+			} else if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLING) {
+				mActionOneProgressBar.setVisibility(View.VISIBLE);
+				mActionOneButton.setVisibility(View.INVISIBLE);
+			}
+		}
 
-
-        public void bind(
-                InstalledApp app
-        ) {
-            // Get views
-            mName = mView.findViewById(R.id.installed_app_name);
-            mPname = mView.findViewById(R.id.installed_app_pname);
-            mVersion = mView.findViewById(R.id.installed_app_version);
-            mIcon = mView.findViewById(R.id.installed_app_icon);
-            mActionOneButton = mView.findViewById(R.id.action_one_button);
-            mActionOneProgressBar = mView.findViewById(R.id.action_one_progressbar);
-
-            mName.setText(app.getName());
-            mPname.setText(app.getPname());
-            mVersion.setText(app.getVersion());
-
-            try {
-                Drawable icon = mContext.getPackageManager().getApplicationIcon(app.getPname());
-                mIcon.setImageDrawable(icon);
-            } catch (PackageManager.NameNotFoundException e) {
-                mIcon.setImageResource(R.drawable.ic_android);
-            }
-
-            // Install button and its progress bar
-            mActionOneButton.setVisibility(View.VISIBLE);
-            mActionOneProgressBar.setVisibility(View.INVISIBLE);
-            mActionOneButton.setOnClickListener(null);
-            if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALL) {
-                mActionOneButton.setText(R.string.action_play);
-                mActionOneButton.setOnClickListener(mAdapter);
-            } else if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLED) {
-                mActionOneButton.setText(R.string.action_installed);
-            } else if (app.getInstallStatus().getStatus() == InstallStatus.STATUS_INSTALLING) {
-                mActionOneProgressBar.setVisibility(View.VISIBLE);
-                mActionOneButton.setVisibility(View.INVISIBLE);
-            }
-        }
-
-
-        private void setTopMargin(
-                int margin
-        ) {
-            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mView.getLayoutParams();
-            params.topMargin = (int) PixelConversion.convertDpToPixel(margin, mContext);
-        }
-
-
-    }
-
-
+		private void setTopMargin(int margin) {
+			ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mView.getLayoutParams();
+			params.topMargin = (int) PixelConversion.convertDpToPixel(margin, mContext);
+		}
+	}
 }
-

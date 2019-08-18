@@ -1,24 +1,16 @@
 package de.apkgrabber.event;
 
-
 public class UpdateStopEvent {
 
+	private String mMessage;
 
-    private String mMessage;
+	public UpdateStopEvent(String m) {
+		mMessage = m;
+	}
 
-
-    public UpdateStopEvent(
-            String m
-    ) {
-        mMessage = m;
-    }
-
-
-    public String getMessage(
-    ) {
-        return mMessage;
-    }
-
+	public String getMessage() {
+		return mMessage;
+	}
 
 }
 

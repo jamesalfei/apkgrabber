@@ -1,6 +1,5 @@
 package de.apkgrabber.adapter;
 
-
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
@@ -22,166 +21,130 @@ import de.apkgrabber.util.PixelConversion;
 
 import java.util.List;
 
+public class InstalledAppAdapter extends RecyclerView.Adapter<InstalledAppAdapter.InstalledAppViewHolder> implements View.OnClickListener {
 
-public class InstalledAppAdapter
-        extends RecyclerView.Adapter<InstalledAppAdapter.InstalledAppViewHolder>
-        implements View.OnClickListener {
+	private List<InstalledApp> mApps;
+	private Context mContext;
+	private RecyclerView mView;
+	private InstalledAppAdapter mAdapter;
 
+	public InstalledAppAdapter(Context context, RecyclerView view, List<InstalledApp> apps) {
+		mContext = context;
+		mAdapter = this;
+		mView = view;
+		AnimationUtil.startSlideAnimation(mContext, mView);
+		mApps = InstalledAppUtil.sort(mContext, apps);
+	}
 
-    private List<InstalledApp> mApps;
-    private Context mContext;
-    private RecyclerView mView;
-    private InstalledAppAdapter mAdapter;
+	@Override
+	public InstalledAppViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+		View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.installed_app_item, parent, false);
+		return new InstalledAppViewHolder(v);
+	}
 
+	private CardView getInstalledAppViewParent(View v) {
+		while (v != null) {
+			v = (View) v.getParent();
+			if (v instanceof CardView) {
+				return (CardView) v;
+			}
+		}
+		return null;
+	}
 
-    public InstalledAppAdapter(
-            Context context,
-            RecyclerView view,
-            List<InstalledApp> apps
-    ) {
-        mContext = context;
-        mAdapter = this;
-        mView = view;
-        AnimationUtil.startSlideAnimation(mContext, mView);
-        mApps = InstalledAppUtil.sort(mContext, apps);
-    }
+	@Override
+	public void onClick(View view) {
+		// Get the ignore list from the options
+		UpdaterOptions options = new UpdaterOptions(mContext);
+		List<String> ignore_list = options.getIgnoreList();
 
-    @Override
-    public InstalledAppViewHolder onCreateViewHolder(
-            ViewGroup parent,
-            int viewType
-    ) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.installed_app_item, parent, false);
-        return new InstalledAppViewHolder(v);
-    }
+		// Get the InstalledAppView parent
+		CardView parent = getInstalledAppViewParent(view);
+		if (parent == null) {
+			return;
+		}
 
-    private CardView getInstalledAppViewParent(
-            View v
-    ) {
-        while (v != null) {
-            v = (View) v.getParent();
-            if (v instanceof CardView) {
-                return (CardView) v;
-            }
-        }
-        return null;
-    }
+		InstalledApp app = mApps.get(mView.getChildLayoutPosition(parent));
 
-    @Override
-    public void onClick(
-            View view
-    ) {
-        // Get the ignore list from the options
-        UpdaterOptions options = new UpdaterOptions(mContext);
-        List<String> ignore_list = options.getIgnoreList();
+		// If it's on the ignore remove, otherwise add it
+		if (ignore_list.contains(app.getPname())) {
+			ignore_list.remove(app.getPname());
+		} else {
+			ignore_list.add(app.getPname());
+		}
 
-        // Get the InstalledAppView parent
-        CardView parent = getInstalledAppViewParent(view);
-        if (parent == null) {
-            return;
-        }
+		// Update the list
+		options.setIgnoreList(ignore_list);
 
-        InstalledApp app = mApps.get(mView.getChildLayoutPosition(parent));
+		// Sort it
+		AnimationUtil.startSlideAnimation(mContext, mView);
+		mApps = InstalledAppUtil.sort(mContext, mApps);
+		notifyDataSetChanged();
+	}
 
-        // If it's on the ignore remove, otherwise add it
-        if (ignore_list.contains(app.getPname())) {
-            ignore_list.remove(app.getPname());
-        } else {
-            ignore_list.add(app.getPname());
-        }
+	@Override
+	public void onBindViewHolder(InstalledAppViewHolder holder, int position) {
+		holder.bind(mApps.get(position));
 
-        // Update the list
-        options.setIgnoreList(ignore_list);
+		if (position == 0) {
+			holder.setTopMargin(8);
+		}
+	}
 
-        // Sort it
-        AnimationUtil.startSlideAnimation(mContext, mView);
-        mApps = InstalledAppUtil.sort(mContext, mApps);
-        notifyDataSetChanged();
-    }
+	@Override
+	public int getItemCount() {
+		return mApps.size();
+	}
 
-    @Override
-    public void onBindViewHolder(
-            InstalledAppViewHolder holder,
-            int position
-    ) {
-        holder.bind(mApps.get(position));
+	public class InstalledAppViewHolder extends RecyclerView.ViewHolder {
 
-        if (position == 0) {
-            holder.setTopMargin(8);
-        }
-    }
+		private View mView;
+		private TextView mName;
+		private TextView mPname;
+		private TextView mVersion;
+		private ImageView mIcon;
+		private Button mActionOneButton;
 
-    @Override
-    public int getItemCount(
-    ) {
-        return mApps.size();
-    }
+		InstalledAppViewHolder(View view) {
+			super(view);
+			mView = view;
+		}
 
-    public class InstalledAppViewHolder
-            extends RecyclerView.ViewHolder {
+		public void bind(InstalledApp app) {
+			// Get views
+			mName = mView.findViewById(R.id.installed_app_name);
+			mPname = mView.findViewById(R.id.installed_app_pname);
+			mVersion = mView.findViewById(R.id.installed_app_version);
+			mIcon = mView.findViewById(R.id.installed_app_icon);
+			mActionOneButton = mView.findViewById(R.id.action_one_button);
 
+			mName.setText(app.getName());
+			mPname.setText(app.getPname());
+			mVersion.setText(app.getVersion());
 
-        private View mView;
-        private TextView mName;
-        private TextView mPname;
-        private TextView mVersion;
-        private ImageView mIcon;
-        private Button mActionOneButton;
+			// Make the ignore overlay visible if this app is on the ignore list
+			UpdaterOptions options = new UpdaterOptions(mContext);
+			if (options.getIgnoreList().contains(app.getPname())) {
+				ViewCompat.setAlpha(mView, 0.50f);
+				mActionOneButton.setText(R.string.action_unignore_app);
+			} else {
+				ViewCompat.setAlpha(mView, 1.00f);
+				mActionOneButton.setText(R.string.action_ignore_app);
+			}
 
+			try {
+				Drawable icon = mContext.getPackageManager().getApplicationIcon(app.getPname());
+				mIcon.setImageDrawable(icon);
+			} catch (PackageManager.NameNotFoundException e) {
+				mIcon.setImageResource(R.drawable.ic_android);
+			}
 
-        InstalledAppViewHolder(
-                View view
-        ) {
-            super(view);
-            mView = view;
-        }
+			mActionOneButton.setOnClickListener(mAdapter);
+		}
 
-
-        public void bind(
-                InstalledApp app
-        ) {
-            // Get views
-            mName = ((TextView) mView.findViewById(R.id.installed_app_name));
-            mPname = ((TextView) mView.findViewById(R.id.installed_app_pname));
-            mVersion = ((TextView) mView.findViewById(R.id.installed_app_version));
-            mIcon = ((ImageView) mView.findViewById(R.id.installed_app_icon));
-            mActionOneButton = ((Button) mView.findViewById(R.id.action_one_button));
-
-            mName.setText(app.getName());
-            mPname.setText(app.getPname());
-            mVersion.setText(app.getVersion());
-
-            // Make the ignore overlay visible if this app is on the ignore list
-            UpdaterOptions options = new UpdaterOptions(mContext);
-            if (options.getIgnoreList().contains(app.getPname())) {
-                ViewCompat.setAlpha(mView, 0.50f);
-                mActionOneButton.setText(R.string.action_unignore_app);
-            } else {
-                ViewCompat.setAlpha(mView, 1.00f);
-                mActionOneButton.setText(R.string.action_ignore_app);
-            }
-
-            try {
-                Drawable icon = mContext.getPackageManager().getApplicationIcon(app.getPname());
-                mIcon.setImageDrawable(icon);
-            } catch (PackageManager.NameNotFoundException e) {
-                mIcon.setImageResource(R.drawable.ic_android);
-            }
-
-            mActionOneButton.setOnClickListener(mAdapter);
-        }
-
-
-        private void setTopMargin(
-                int margin
-        ) {
-            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mView.getLayoutParams();
-            params.topMargin = (int) PixelConversion.convertDpToPixel(margin, mContext);
-        }
-
-
-    }
-
-
+		private void setTopMargin(int margin) {
+			ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mView.getLayoutParams();
+			params.topMargin = (int) PixelConversion.convertDpToPixel(margin, mContext);
+		}
+	}
 }
-

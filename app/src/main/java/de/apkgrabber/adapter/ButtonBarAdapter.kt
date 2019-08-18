@@ -11,51 +11,28 @@ import de.apkgrabber.model.ActionButton
 import kotlinx.android.synthetic.main.button_bar_item.view.*
 
 
-class ButtonBarAdapter
-    : RecyclerView.Adapter<ButtonBarAdapter.ButtonBarViewHolder> {
-
+class ButtonBarAdapter(context: Context) : RecyclerView.Adapter<ButtonBarAdapter.ButtonBarViewHolder>() {
 
     private var mItems: MutableList<ActionButton> = mutableListOf()
-    private var mContext: Context
+    private var mContext: Context = context
 
-
-    constructor(
-            context: Context
-    ) {
-        mContext = context
+    override fun onBindViewHolder(holder: ButtonBarViewHolder, position: Int) {
+        holder.bind(mItems[position])
     }
 
-
-    override fun onBindViewHolder(
-            holder: ButtonBarViewHolder,
-            position: Int
-    ) {
-        holder?.bind(mItems[position])
-    }
-
-
-    override fun onCreateViewHolder(
-            parent: ViewGroup,
-            viewType: Int
-    ): ButtonBarViewHolder {
-        val v: View = LayoutInflater.from(parent?.context).inflate(R.layout.button_bar_item, parent, false)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ButtonBarViewHolder {
+        val v: View = LayoutInflater.from(parent.context).inflate(R.layout.button_bar_item, parent, false)
         return ButtonBarViewHolder(v)
     }
 
-
-    override fun getItemCount(
-    ): Int {
+    override fun getItemCount(): Int {
         return mItems.count()
     }
 
-
-    class ButtonBarViewHolder(view: View)
-        : RecyclerView.ViewHolder(view) {
+    class ButtonBarViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val mView: View = view
 
-        fun bind(
-                data: ActionButton
-        ) {
+        fun bind(data: ActionButton) {
             mView.button.text = data.text
             mView.button.setOnClickListener { data.callback() }
             if (data.loading) {
@@ -68,13 +45,9 @@ class ButtonBarAdapter
         }
     }
 
-
-    fun addButton(
-            button: ActionButton
-    ) {
+    fun addButton(button: ActionButton) {
         mItems.add(button)
     }
-
 
 }
 

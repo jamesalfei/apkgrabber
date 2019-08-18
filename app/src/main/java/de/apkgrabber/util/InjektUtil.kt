@@ -18,43 +18,32 @@ class InjektUtil {
         var injekt: InjektScope? = null
 
 
-        fun init(
-        ) {
+        fun init() {
             injekt = InjektScope(DefaultRegistrar())
         }
 
 
-        fun addAppStateSingleton(
-                appState: AppState
-        ) {
+        fun addAppStateSingleton(appState: AppState) {
             injekt?.addSingleton(appState)
         }
 
 
-        fun addMyBusSingleton(
-                bus: MyBus
-        ) {
+        fun addMyBusSingleton(bus: MyBus) {
             injekt?.addSingleton(bus)
         }
 
 
-        fun addLogUtilSingleton(
-                logger: LogUtil
-        ) {
+        fun addLogUtilSingleton(logger: LogUtil) {
             injekt?.addSingleton(logger)
         }
 
 
-        fun addActivitySingleton(
-                activity: MainActivity
-        ) {
+        fun addActivitySingleton(activity: MainActivity) {
             injekt?.addSingleton(activity)
         }
 
 
-        fun addUpdaterAdapterSingleton(
-                adapter: UpdaterAdapter
-        ) {
+        fun addUpdaterAdapterSingleton(adapter: UpdaterAdapter) {
             injekt?.addSingleton(adapter)
         }
 

@@ -1,23 +1,20 @@
 package de.apkgrabber.updater;
 
-
 public interface IUpdater {
 
+	String getResultUrl();
 
-    String getResultUrl();
+	String getResultCookie();
 
-    String getResultCookie();
+	int getResultVersionCode();
 
-    int getResultVersionCode();
+	Throwable getResultError();
 
-    Throwable getResultError();
+	UpdaterStatus getResultStatus();
 
-    UpdaterStatus getResultStatus();
+	String getResultVersion();
 
-    String getResultVersion();
-
-    boolean isBeta();
-
+	boolean isBeta();
 
 }
 

@@ -1,6 +1,5 @@
 package de.apkgrabber.updater;
 
-
 import android.content.Context;
 import com.github.yeriomin.playstoreapi.*;
 import com.google.gson.Gson;
@@ -16,175 +15,142 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-
 public class UpdaterGooglePlay {
 
+	private static GooglePlayAPI mApi = null;
 
-    private static GooglePlayAPI mApi = null;
+	private List<InstalledApp> mApps;
+	private Context mContext;
+	private String mError;
+	private UpdaterStatus mResultCode = UpdaterStatus.STATUS_UPDATE_FOUND;
+	private List<Update> mUpdates = new ArrayList<>();
 
-    private List<InstalledApp> mApps;
-    private Context mContext;
-    private String mError;
-    private UpdaterStatus mResultCode = UpdaterStatus.STATUS_UPDATE_FOUND;
-    private List<Update> mUpdates = new ArrayList<>();
+	public UpdaterGooglePlay(Context context, List<InstalledApp> apps, ExecutorService executor, final GenericCallback<Update> callback) {
+		try {
+			// Store vars
+			mApps = apps;
+			mContext = context;
+			mApi = GooglePlayUtil.getApi(mContext);
 
+			if (mApi == null) {
+				mError = "Unable to get GooglePlayApi";
+				mResultCode = UpdaterStatus.STATUS_ERROR;
+				return;
+			}
 
-    public UpdaterGooglePlay(
-            Context context,
-            List<InstalledApp> apps,
-            ExecutorService executor,
-            final GenericCallback<Update> callback
-    ) {
-        try {
-            // Store vars
-            mApps = apps;
-            mContext = context;
-            mApi = GooglePlayUtil.getApi(mContext);
+			List<String> pnames = new ArrayList<>();
+			for (InstalledApp app : apps) {
+				pnames.add(app.getPname());
+			}
 
-            if (mApi == null) {
-                mError = "Unable to get GooglePlayApi";
-                mResultCode = UpdaterStatus.STATUS_ERROR;
-                return;
-            }
+			BulkDetailsResponse response = mApi.bulkDetails(pnames);
 
-            List<String> pnames = new ArrayList<>();
-            for (InstalledApp app : apps) {
-                pnames.add(app.getPname());
-            }
+			if (response == null || response.getEntryList() == null) {
+				mError = "Response is null";
+				mResultCode = UpdaterStatus.STATUS_ERROR;
+				return;
+			}
 
-            BulkDetailsResponse response = mApi.bulkDetails(pnames);
+			final UpdaterOptions options = new UpdaterOptions(context);
 
-            if (response == null || response.getEntryList() == null) {
-                mError = "Response is null";
-                mResultCode = UpdaterStatus.STATUS_ERROR;
-                return;
-            }
+			for (BulkDetailsEntry entry : response.getEntryList()) {
+				if (!entry.hasDoc()) {
+					callback.onResult(null);
+					continue;
+				}
 
-            final UpdaterOptions options = new UpdaterOptions(context);
+				final DocV2 details = entry.getDoc();
+				final int versionCode = details.getDetails().getAppDetails().getVersionCode();
+				final String pname = details.getDetails().getAppDetails().getPackageName();
+				final InstalledApp app = getInstalledApp(pname);
 
-            for (BulkDetailsEntry entry : response.getEntryList()) {
-                if (!entry.hasDoc()) {
-                    callback.onResult(null);
-                    continue;
-                }
+				if (app == null) {
+					callback.onResult(null);
+					continue;
+				}
 
-                final DocV2 details = entry.getDoc();
-                final int versionCode = details.getDetails().getAppDetails().getVersionCode();
-                final String pname = details.getDetails().getAppDetails().getPackageName();
-                final InstalledApp app = getInstalledApp(pname);
+				if (versionCode > app.getVersionCode()) {
+					executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							String versionString = "?";
+							try {
+								AppDetails appDetails = mApi.details(app.getPname()).getDocV2().getDetails().getAppDetails();
+								if (appDetails.hasVersionString()) {
+									versionString = appDetails.getVersionString();
+								}
+							} catch (IOException e) {
+								mError += "failed to get version string for " + app.getPname() + "\n";
+							}
 
-                if (app == null) {
-                    callback.onResult(null);
-                    continue;
-                }
+							try {
+								Update u = new Update(app, "", versionString, false, "Cookie", versionCode);
 
-                if (versionCode > app.getVersionCode()) {
-                    executor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            String versionString = "?";
-                            try {
-                                AppDetails appDetails = mApi.details(app.getPname())
-                                        .getDocV2()
-                                        .getDetails()
-                                        .getAppDetails();
-                                if (appDetails.hasVersionString()) {
-                                    versionString = appDetails.getVersionString();
-                                }
-                            } catch (IOException e) {
-                                mError += "failed to get version string for " + app.getPname() + "\n";
-                            }
+								if (details.getDetails().getAppDetails().hasRecentChangesHtml()) {
+									u.setChangeLog(details.getDetails().getAppDetails().getRecentChangesHtml());
+								}
 
-                            try {
-                                Update u = new Update(
-                                        app,
-                                        "",
-                                        versionString,
-                                        false,
-                                        "Cookie",
-                                        versionCode
-                                );
+								mUpdates.add(u);
 
-                                if (details.getDetails().getAppDetails().hasRecentChangesHtml()) {
-                                    u.setChangeLog(details.getDetails().getAppDetails().getRecentChangesHtml());
-                                }
+								if (options.automaticInstall()) {
+									callback.onResult(null);
+								} else {
+									callback.onResult(u);
+								}
+							} catch (Exception ex) {
+								callback.onResult(null);
+							}
+						}
+					});
+				}
+			}
 
-                                mUpdates.add(u);
+			executor.shutdown();
+			while (!executor.isTerminated()) {
+				Thread.sleep(1);
+			}
 
-                                if (options.automaticInstall()) {
-                                    callback.onResult(null);
-                                } else {
-                                    callback.onResult(u);
-                                }
-                            } catch (Exception ex) {
-                                callback.onResult(null);
-                            }
-                        }
-                    });
-                }
-            }
+			doAutomaticInstalls();
+		} catch (Exception e) {
+			mError = String.valueOf(e);
+			mResultCode = UpdaterStatus.STATUS_ERROR;
+		}
+	}
 
-            executor.shutdown();
-            while (!executor.isTerminated()) {
-                Thread.sleep(1);
-            }
+	private void doAutomaticInstalls() {
+		try {
+			UpdaterOptions options = new UpdaterOptions(mContext);
 
-            doAutomaticInstalls();
-        } catch (Exception e) {
-            mError = String.valueOf(e);
-            mResultCode = UpdaterStatus.STATUS_ERROR;
-        }
-    }
+			if (options.automaticInstall() && !ServiceUtil.isServiceRunning(mContext, AutomaticInstallerService_.class)) {
+				String s = new Gson().toJson(mUpdates);
 
+				AutomaticInstallerService_.intent(mContext.getApplicationContext()).extra("updates", s).start();
+			}
+		} catch (Exception e) {
 
-    private void doAutomaticInstalls(
-    ) {
-        try {
-            UpdaterOptions options = new UpdaterOptions(mContext);
+		}
+	}
 
-            if (options.automaticInstall() && !ServiceUtil.isServiceRunning(mContext, AutomaticInstallerService_.class)) {
-                String s = new Gson().toJson(mUpdates);
+	private InstalledApp getInstalledApp(String pname) {
+		for (InstalledApp app : mApps) {
+			if (app.getPname().equals(pname)) {
+				return app;
+			}
+		}
+		return null;
+	}
 
-                AutomaticInstallerService_
-                        .intent(mContext.getApplicationContext())
-                        .extra("updates", s)
-                        .start();
-            }
-        } catch (Exception e) {
+	public Throwable getResultError() {
+		return new Throwable(mError + " | Source: GooglePlay");
+	}
 
-        }
-    }
+	public UpdaterStatus getResultStatus() {
+		return mResultCode;
+	}
 
-
-    private InstalledApp getInstalledApp(
-            String pname
-    ) {
-        for (InstalledApp app : mApps) {
-            if (app.getPname().equals(pname)) {
-                return app;
-            }
-        }
-        return null;
-    }
-
-
-    public Throwable getResultError(
-    ) {
-        return new Throwable(mError + " | Source: GooglePlay");
-    }
-
-
-    public UpdaterStatus getResultStatus(
-    ) {
-        return mResultCode;
-    }
-
-
-    public List<Update> getUpdates(
-    ) {
-        return mUpdates;
-    }
-
+	public List<Update> getUpdates() {
+		return mUpdates;
+	}
 
 }
 

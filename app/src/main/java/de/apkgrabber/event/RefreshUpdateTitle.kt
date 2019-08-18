@@ -1,5 +1,5 @@
 package de.apkgrabber.event
 
 
-class RefreshUpdateTitle {}
+class RefreshUpdateTitle
 

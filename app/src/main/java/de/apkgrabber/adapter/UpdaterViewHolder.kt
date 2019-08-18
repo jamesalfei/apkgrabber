@@ -18,9 +18,7 @@ import uy.kohesive.injekt.api.get
 import kotlin.concurrent.thread
 
 
-open class UpdaterViewHolder(view: View)
-    : RecyclerView.ViewHolder(view) {
-
+open class UpdaterViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
     protected var mView: View? = view
     protected var mContext: Context? = view.context
@@ -30,10 +28,7 @@ open class UpdaterViewHolder(view: View)
     protected val mAppState: AppState = InjektUtil.injekt?.get()!!
 
 
-    open fun bind(
-            adapter: UpdaterAdapter,
-            updates: MergedUpdate
-    ) {
+    open fun bind(adapter: UpdaterAdapter, updates: MergedUpdate) {
         val u: Update = updates.updateList[0]
 
         mView?.installed_app_name?.text = u.name
@@ -41,28 +36,23 @@ open class UpdaterViewHolder(view: View)
 
         val v = if (u.newVersion == "?" && updates.updateList.size > 1) updates.updateList[1].newVersion else u.newVersion
 
-        mView?.installed_app_version?.text =
-                String.format("%s (%s) -> %s (%s)", u.version, u.versionCode, v, u.newVersionCode)
+        mView?.installed_app_version?.text = String.format("%s (%s) -> %s (%s)", u.version, u.versionCode, v, u.newVersionCode)
 
         // Icon
         mView?.installed_app_icon?.setImageDrawable(mView?.context?.packageManager?.getApplicationIcon(u.pname))
 
         // Beta icon
         mView?.isbeta_icon?.visibility = if (u.isBeta) View.VISIBLE else View.GONE
-        mView?.isbeta_icon?.background?.setColorFilter(
-                ColorUtil.getColorFromTheme(mContext?.theme, R.attr.colorAccent),
-                android.graphics.PorterDuff.Mode.MULTIPLY
-        )
+        mView?.isbeta_icon?.background?.setColorFilter(ColorUtil.getColorFromTheme(mContext?.theme, R.attr.colorAccent), android.graphics.PorterDuff.Mode.MULTIPLY)
 
         // Click handler for expand/collapse
         mView?.setOnClickListener {
             AnimationUtil.startDefaultAnimation(mContext, mView?.change_log_container)
-            mView?.change_log_container?.visibility =
-                    if (mView?.change_log_container?.visibility == View.GONE) View.VISIBLE else View.GONE
+            mView?.change_log_container?.visibility = if (mView?.change_log_container?.visibility == View.GONE) View.VISIBLE else View.GONE
         }
 
         // Changelog
-        if (u.changeLog?.isNullOrEmpty() ?: true) {
+        if (u.changeLog?.isNullOrEmpty() != false) {
             mView?.change_log_text?.text = ""
             mView?.change_log_text?.visibility = View.GONE
         } else {
@@ -79,62 +69,43 @@ open class UpdaterViewHolder(view: View)
     }
 
 
-    private fun configureActionButton(
-            u: Update
-    ) {
+    private fun configureActionButton(u: Update) {
         val text: String = getActionString(u)
         val adapter: ButtonBarAdapter = mView?.button_bar?.adapter as ButtonBarAdapter
-        adapter.addButton(ActionButton(
-                text,
-                u.installStatus.status == InstallStatus.STATUS_INSTALLING,
-                {
-                    if (text == mContext?.getString(R.string.action_play)) {
-                        launchInstall(u)
-                    } else if (text == mContext?.getString(R.string.action_aptoide)) {
-                        val splits = u.url.split("/")
-                        directDownload(u, splits.last())
-                    } else {
-                        launchBrowser(u)
-                    }
-                }
-        ))
+        adapter.addButton(ActionButton(text, u.installStatus.status == InstallStatus.STATUS_INSTALLING, {
+            if (text == mContext?.getString(R.string.action_play)) {
+                launchInstall(u)
+            } else if (text == mContext?.getString(R.string.action_aptoide)) {
+                val splits = u.url.split("/")
+                directDownload(u, splits.last())
+            } else {
+                launchBrowser(u)
+            }
+        }))
     }
 
 
-    private fun configureIgnoreButton(
-            u: Update
-    ) {
+    private fun configureIgnoreButton(u: Update) {
         val adapter: ButtonBarAdapter = mView?.button_bar?.adapter as ButtonBarAdapter
-        adapter.addButton(ActionButton(
-                mContext?.getString(R.string.action_ignore_app)!!,
-                false,
-                {
-                    val options: UpdaterOptions = UpdaterOptions(mContext)
-                    val l = options.ignoreVersionList
-                    l.add(IgnoreVersion(u.pname, u.newVersion, u.newVersionCode))
-                    options.ignoreVersionList = l
-                    val adapter: UpdaterAdapter = InjektUtil.injekt?.get()!!
-                    adapter.removeUpdate(u)
-                    adapter.notifyDataSetChanged()
-                }
-        ))
+        adapter.addButton(ActionButton(mContext?.getString(R.string.action_ignore_app)!!, false, {
+            val options: UpdaterOptions = UpdaterOptions(mContext)
+            val l = options.ignoreVersionList
+            l.add(IgnoreVersion(u.pname, u.newVersion, u.newVersionCode))
+            options.ignoreVersionList = l
+            val adapter: UpdaterAdapter = InjektUtil.injekt?.get()!!
+            adapter.removeUpdate(u)
+            adapter.notifyDataSetChanged()
+        }))
     }
 
 
-    private fun launchInstall(
-            u: Update
-    ) {
+    private fun launchInstall(u: Update) {
         changeAppInstallStatusAndNotify(u, InstallStatus.STATUS_INSTALLING, 0)
         thread {
             try {
                 val data = GooglePlayUtil.getAppDeliveryData(GooglePlayUtil.getApi(mContext), u.pname)
 
-                val id = DownloadUtil.downloadFile(
-                        mContext,
-                        data.downloadUrl,
-                        data.getDownloadAuthCookie(0).name + "=" + data.getDownloadAuthCookie(0).value,
-                        u.pname + " " + u.newVersionCode
-                )
+                val id = DownloadUtil.downloadFile(mContext, data.downloadUrl, data.getDownloadAuthCookie(0).name + "=" + data.getDownloadAuthCookie(0).value, u.pname + " " + u.newVersionCode)
 
                 mAppState.downloadInfo.put(id, DownloadInfo(u.pname, u.newVersionCode, u.newVersion))
                 changeAppInstallStatusAndNotify(u, InstallStatus.STATUS_INSTALLING, id)
@@ -151,9 +122,7 @@ open class UpdaterViewHolder(view: View)
     }
 
 
-    private fun launchBrowser(
-            u: Update
-    ) {
+    private fun launchBrowser(u: Update) {
         DownloadUtil.launchBrowser(mContext, u.url)
     }
 
@@ -162,9 +131,7 @@ open class UpdaterViewHolder(view: View)
     }
 
 
-    private fun getActionString(
-            u: Update
-    ): String {
+    private fun getActionString(u: Update): String {
         if (u.url.contains("apkmirror.com")) {
             return mContext?.getString(R.string.action_apkmirror)!!
         } else if (u.url.contains("uptodown.com")) {
@@ -186,11 +153,7 @@ open class UpdaterViewHolder(view: View)
     }
 
 
-    private fun changeAppInstallStatusAndNotify(
-            app: Update?,
-            status: Int,
-            id: Long
-    ) {
+    private fun changeAppInstallStatusAndNotify(app: Update?, status: Int, id: Long) {
         val adapter: UpdaterAdapter = InjektUtil.injekt?.get()!!
         app?.installStatus?.id = id
         app?.installStatus?.status = status
@@ -200,13 +163,8 @@ open class UpdaterViewHolder(view: View)
     }
 
 
-    fun setTopMargin(
-            margin: Int
-    ) {
+    fun setTopMargin(margin: Int) {
         val params = mView?.layoutParams as ViewGroup.MarginLayoutParams?
         params?.topMargin = PixelConversion.convertDpToPixel(margin.toFloat(), mContext).toInt()
     }
-
-
 }
-

@@ -1,6 +1,5 @@
 package de.apkgrabber.updater;
 
-
 import android.content.Context;
 import com.google.gson.Gson;
 import de.apkgrabber.model.APKMirror.AppExistsRequest;
@@ -21,232 +20,188 @@ import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class UpdaterAPKMirrorAPI {
 
+	private static final String BaseUrl = "https://www.apkmirror.com/wp-json/apkm/v1/";
+	private static final String DownloadUrl = "https://www.apkmirror.com";
+	private static final String AppExists = "app_exists/";
+	private static final String User = "api-apkupdater";
+	private static final String Token = "rm5rcfruUjKy04sMpyMPJXW8";
+	private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-    private static final String BaseUrl = "https://www.apkmirror.com/wp-json/apkm/v1/";
-    private static final String DownloadUrl = "https://www.apkmirror.com";
-    private static final String AppExists = "app_exists/";
-    private static final String User = "api-apkupdater";
-    private static final String Token = "rm5rcfruUjKy04sMpyMPJXW8";
-    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+	private List<InstalledApp> mApps;
+	private Context mContext;
+	private String mError;
+	private UpdaterStatus mResultCode = UpdaterStatus.STATUS_UPDATE_FOUND;
+	private List<Update> mUpdates = new ArrayList<>();
+	private GenericCallback<Update> mUpdateCallback;
 
-    private List<InstalledApp> mApps;
-    private Context mContext;
-    private String mError;
-    private UpdaterStatus mResultCode = UpdaterStatus.STATUS_UPDATE_FOUND;
-    private List<Update> mUpdates = new ArrayList<>();
-    private GenericCallback<Update> mUpdateCallback;
+	public UpdaterAPKMirrorAPI(Context context, List<InstalledApp> apps, GenericCallback<Update> updateCallback) {
+		// Store vars
+		mApps = apps;
+		mContext = context;
+		mUpdateCallback = updateCallback;
 
+		// Create the OkHttp client
+		OkHttpClient client = getOkHttpClient();
+		if (client == null) {
+			mError = "Unable to get OkHttpError";
+			mResultCode = UpdaterStatus.STATUS_ERROR;
+			return;
+		}
 
-    public UpdaterAPKMirrorAPI(
-            Context context,
-            List<InstalledApp> apps,
-            GenericCallback<Update> updateCallback
-    ) {
-        // Store vars
-        mApps = apps;
-        mContext = context;
-        mUpdateCallback = updateCallback;
+		// Build the json object for the request
+		List<String> pnames = new ArrayList<>();
+		for (InstalledApp app : apps) {
+			pnames.add(app.getPname());
+		}
 
-        // Create the OkHttp client
-        OkHttpClient client = getOkHttpClient();
-        if (client == null) {
-            mError = "Unable to get OkHttpError";
-            mResultCode = UpdaterStatus.STATUS_ERROR;
-            return;
-        }
+		AppExistsRequest json = new AppExistsRequest(pnames, null
+				//new UpdaterOptions(context).skipExperimental() ? AppExistsRequest.excludeExperimental() : null
+		);
 
-        // Build the json object for the request
-        List<String> pnames = new ArrayList<>();
-        for (InstalledApp app : apps) {
-            pnames.add(app.getPname());
-        }
+		// Build the OkHttp request
+		RequestBody body = RequestBody.create(JSON, new Gson().toJson(json));
+		final Request request = new Request.Builder().url(BaseUrl + AppExists).header("User-Agent", VersionUtil.getUserAgent(mContext)).post(body).header("Authorization", Credentials.basic(User, Token)).build();
 
-        AppExistsRequest json = new AppExistsRequest(
-                pnames,
-                null
-                //new UpdaterOptions(context).skipExperimental() ? AppExistsRequest.excludeExperimental() : null
-        );
+		// Perform request
+		try {
+			Response r = client.newCall(request).execute();
+			parseResponse(r.body().string());
+		} catch (Exception e) {
+			mError = "Request failure: " + e;
+			mResultCode = UpdaterStatus.STATUS_ERROR;
+			return;
+		}
+	}
 
-        // Build the OkHttp request
-        RequestBody body = RequestBody.create(JSON, new Gson().toJson(json));
-        final Request request = new Request.Builder()
-                .url(BaseUrl + AppExists)
-                .header("User-Agent", VersionUtil.getUserAgent(mContext))
-                .post(body)
-                .header("Authorization", Credentials.basic(User, Token))
-                .build();
+	private void parseResponse(String body) {
+		try {
+			// Convert response json to object
+			AppExistsResponse r = new Gson().fromJson(body, AppExistsResponse.class);
 
-        // Perform request
-        try {
-            Response r = client.newCall(request).execute();
-            parseResponse(r.body().string());
-        } catch (Exception e) {
-            mError = "Request failure: " + String.valueOf(e);
-            mResultCode = UpdaterStatus.STATUS_ERROR;
-            return;
-        }
-    }
+			// Check if request was successful (Code 200)
+			if (r.getStatus() != 200) {
+				mError = "Request not successful: " + r.getStatus();
+				mResultCode = UpdaterStatus.STATUS_ERROR;
+				return;
+			}
 
+			UpdaterOptions options = new UpdaterOptions(mContext);
+			boolean skipExperimental = options.skipExperimental();
+			boolean skipArchitecture = options.skipArchitecture();
+			boolean skipMinapi = options.skipMinapi();
 
-    private void parseResponse(
-            String body
-    ) {
-        try {
-            // Convert response json to object
-            AppExistsResponse r = new Gson().fromJson(body, AppExistsResponse.class);
+			for (InstalledApp app : mApps) {
+				// Check the response data
+				AppExistsResponseData data = getData(r, app.getPname());
 
-            // Check if request was successful (Code 200)
-            if (r.getStatus() != 200) {
-                mError = "Request not successful: " + r.getStatus();
-                mResultCode = UpdaterStatus.STATUS_ERROR;
-                return;
-            }
+				// If no apk, check next data
+				if (data == null || data.getApks() == null) {
+					continue;
+				}
 
-            UpdaterOptions options = new UpdaterOptions(mContext);
-            boolean skipExperimental = options.skipExperimental();
-            boolean skipArchitecture = options.skipArchitecture();
-            boolean skipMinapi = options.skipMinapi();
+				boolean isBeta = VersionUtil.isExperimental(data.getRelease().getVersion());
 
-            for (InstalledApp app : mApps) {
-                // Check the response data
-                AppExistsResponseData data = getData(r, app.getPname());
+				// Check all apks
+				List<AppExistsResponseApk> fapks = new ArrayList<>();
+				for (AppExistsResponseApk apk : data.getApks()) {
+					if (isBeta && skipExperimental) {
+						continue;
+					}
 
-                // If no apk, check next data
-                if (data == null || data.getApks() == null) {
-                    continue;
-                }
+					if (skipArchitecture && apk.getArches() != null && VersionUtil.skipArchitecture(apk.getArches())) {
+						continue;
+					}
 
-                boolean isBeta = VersionUtil.isExperimental(data.getRelease().getVersion());
+					if (skipMinapi && apk.getMinapi() != null && VersionUtil.skipMinapi(apk.getMinapi())) {
+						continue;
+					}
 
-                // Check all apks
-                List<AppExistsResponseApk> fapks = new ArrayList<>();
-                for (AppExistsResponseApk apk : data.getApks()) {
-                    if (isBeta && skipExperimental) {
-                        continue;
-                    }
+					fapks.add(apk);
+				}
 
-                    if (skipArchitecture && apk.getArches() != null && VersionUtil.skipArchitecture(apk.getArches())) {
-                        continue;
-                    }
+				fapks = CollectionUtil.Companion.sortAppExistsResponseApk(fapks);
 
-                    if (skipMinapi && apk.getMinapi() != null && VersionUtil.skipMinapi(apk.getMinapi())) {
-                        continue;
-                    }
+				if (!fapks.isEmpty()) {
+					AppExistsResponseApk apk = CollectionUtil.Companion.getFirstAppExistResponse(fapks);
 
-                    fapks.add(apk);
-                }
+					// Only compare with first one.
+					if (Integer.valueOf(apk.getVersionCode()) > app.getVersionCode()) {
+						// Add the update
+						Update u = new Update(app, DownloadUrl + data.getRelease().getLink(), data.getRelease().getVersion(), isBeta, null, Integer.valueOf(apk.getVersionCode()));
+						u.setChangeLog(data.getRelease().getWhatsNew());
+						mUpdates.add(u);
+						mUpdateCallback.onResult(u);
+						continue;
+					}
+				}
 
-                fapks = CollectionUtil.Companion.sortAppExistsResponseApk(fapks);
+				mUpdateCallback.onResult(null);
+			}
 
-                if (!fapks.isEmpty()) {
-                    AppExistsResponseApk apk = CollectionUtil.Companion.getFirstAppExistResponse(fapks);
+		} catch (Exception e) {
+			mError = "Parse response failed: " + e;
+			mResultCode = UpdaterStatus.STATUS_ERROR;
+		}
+	}
 
-                    // Only compare with first one.
-                    if (Integer.valueOf(apk.getVersionCode()) > app.getVersionCode()) {
-                        // Add the update
-                        Update u = new Update(
-                                app,
-                                DownloadUrl + data.getRelease().getLink(),
-                                data.getRelease().getVersion(),
-                                isBeta,
-                                null,
-                                Integer.valueOf(apk.getVersionCode())
-                        );
-                        u.setChangeLog(data.getRelease().getWhatsNew());
-                        mUpdates.add(u);
-                        mUpdateCallback.onResult(u);
-                        continue;
-                    }
-                }
+	private InstalledApp getInstalledApp(String pname) {
+		for (InstalledApp app : mApps) {
+			if (app.getPname().equals(pname)) {
+				return app;
+			}
+		}
+		return null;
+	}
 
-                mUpdateCallback.onResult(null);
-            }
+	private AppExistsResponseData getData(AppExistsResponse response, String pname) {
+		for (AppExistsResponseData data : response.getData()) {
+			if (data.getPname().equals(pname)) {
+				return data;
+			}
+		}
+		return null;
+	}
 
-        } catch (Exception e) {
-            mError = "Parse response failed: " + String.valueOf(e);
-            mResultCode = UpdaterStatus.STATUS_ERROR;
-        }
-    }
+	private OkHttpClient getOkHttpClient() {
+		try {
+			final TrustManager[] trust = new TrustManager[]{new X509TrustManager() {
+				@Override
+				public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+				}
 
+				@Override
+				public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+				}
 
-    private InstalledApp getInstalledApp(
-            String pname
-    ) {
-        for (InstalledApp app : mApps) {
-            if (app.getPname().equals(pname)) {
-                return app;
-            }
-        }
-        return null;
-    }
+				@Override
+				public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+					return new java.security.cert.X509Certificate[]{};
+				}
+			}};
 
+			SSLContext context = SSLContext.getInstance("SSL");
+			context.init(null, trust, new java.security.SecureRandom());
 
-    private AppExistsResponseData getData(
-            AppExistsResponse response,
-            String pname
-    ) {
-        for (AppExistsResponseData data : response.getData()) {
-            if (data.getPname().equals(pname)) {
-                return data;
-            }
-        }
-        return null;
-    }
+			return new OkHttpClient.Builder().sslSocketFactory(context.getSocketFactory(), (X509TrustManager) trust[0]).build();
 
+		} catch (Exception e) {
+			return null;
+		}
+	}
 
-    private OkHttpClient getOkHttpClient(
-    ) {
-        try {
-            final TrustManager[] trust = new TrustManager[]{
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
+	public Throwable getResultError() {
+		return new Throwable(mError);
+	}
 
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
+	public UpdaterStatus getResultStatus() {
+		return mResultCode;
+	}
 
-                        @Override
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[]{};
-                        }
-                    }
-            };
-
-            SSLContext context = SSLContext.getInstance("SSL");
-            context.init(null, trust, new java.security.SecureRandom());
-
-            return new OkHttpClient.Builder()
-                    .sslSocketFactory(context.getSocketFactory(), (X509TrustManager) trust[0])
-                    .build();
-
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-
-    public Throwable getResultError(
-    ) {
-        return new Throwable(mError);
-    }
-
-
-    public UpdaterStatus getResultStatus(
-    ) {
-        return mResultCode;
-    }
-
-
-    public List<Update> getUpdates(
-    ) {
-        return mUpdates;
-    }
-
+	public List<Update> getUpdates() {
+		return mUpdates;
+	}
 
 }
 
