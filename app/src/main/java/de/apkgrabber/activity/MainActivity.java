@@ -31,7 +31,6 @@ import de.apkgrabber.updater.UpdaterOptions;
 import de.apkgrabber.util.*;
 import org.androidannotations.annotations.*;
 
-@EActivity
 public class MainActivity extends AppCompatActivity {
 
 	@ViewById(R.id.toolbar)

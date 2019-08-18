@@ -7,37 +7,39 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import de.apkgrabber.R;
 import de.apkgrabber.model.LogMessage;
-import org.androidannotations.annotations.EViewGroup;
-import org.androidannotations.annotations.ViewById;
 
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
-@EViewGroup(R.layout.log_item)
+import static java.text.DateFormat.getDateTimeInstance;
+
 public class LogView extends LinearLayout {
 
-	@ViewById(R.id.log_title)
-	TextView mTitle;
-
-	@ViewById(R.id.log_time)
-	TextView mTime;
-
-	@ViewById(R.id.log_message)
-	TextView mMessage;
-
-	@ViewById(R.id.log_icon)
-	ImageView mIcon;
+	private TextView mTitle;
+	private TextView mTime;
+	private TextView mMessage;
+	private ImageView mIcon;
 
 	public LogView(Context context) {
 		super(context);
+
+		mTitle = findViewById(R.id.log_title);
+		mTime = findViewById(R.id.log_time);
+		mMessage = findViewById(R.id.log_message);
+		mIcon = findViewById(R.id.log_icon);
+	}
+
+	public static LogView build(Context context) {
+		LogView instance = new LogView(context);
+		instance.onFinishInflate();
+		return instance;
 	}
 
 	public void bind(LogMessage message) {
 		mTitle.setText(message.getTitle());
 		mMessage.setText(message.getMessage());
 
-		DateFormat df = SimpleDateFormat.getDateTimeInstance();
+		DateFormat df = getDateTimeInstance();
 		mTime.setText(df.format(new Date(message.getTime())));
 
 		if (message.getSeverity() == LogMessage.SEVERITY_INFO) {
@@ -51,6 +53,5 @@ public class LogView extends LinearLayout {
 			mIcon.setColorFilter(ContextCompat.getColor(getContext(), R.color.errorColor));
 		}
 	}
-
 }
 

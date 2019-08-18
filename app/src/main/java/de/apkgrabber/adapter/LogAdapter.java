@@ -9,7 +9,6 @@ import android.widget.ArrayAdapter;
 import de.apkgrabber.model.LogMessage;
 import de.apkgrabber.util.MyBus;
 import de.apkgrabber.view.LogView;
-import de.apkgrabber.view.LogView_;
 import org.androidannotations.annotations.Bean;
 import org.androidannotations.annotations.EBean;
 import org.androidannotations.annotations.RootContext;
@@ -33,7 +32,7 @@ public class LogAdapter extends ArrayAdapter<LogMessage> {
 		LogView log;
 
 		if (convertView == null) {
-			log = LogView_.build(context);
+			log = LogView.build(context);
 		} else {
 			log = (LogView) convertView;
 		}

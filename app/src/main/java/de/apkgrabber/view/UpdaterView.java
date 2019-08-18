@@ -10,38 +10,36 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import de.apkgrabber.R;
 import de.apkgrabber.model.Update;
-import org.androidannotations.annotations.EViewGroup;
-import org.androidannotations.annotations.ViewById;
 
-@EViewGroup(R.layout.updater_item)
 public class UpdaterView extends LinearLayout {
 
-	@ViewById(R.id.installed_app_name)
-	TextView mName;
+	private TextView mName;
+	private TextView mPname;
+	private TextView mVersion;
+	private ImageView mIcon;
+	private TextView mUrl;
+	private Button mActionOneButton;
+	private Button mActionTwoButton;
 
-	@ViewById(R.id.installed_app_pname)
-	TextView mPname;
-
-	@ViewById(R.id.installed_app_version)
-	TextView mVersion;
-
-	@ViewById(R.id.installed_app_icon)
-	ImageView mIcon;
-
-	@ViewById(R.id.update_url)
-	TextView mUrl;
-
-	@ViewById(R.id.action_one_button)
-	Button mActionOneButton;
-
-	@ViewById(R.id.action_two_button)
-	Button mActionTwoButton;
-
-	Context mContext;
+	private Context mContext;
 
 	public UpdaterView(Context context) {
 		super(context);
 		mContext = context;
+
+		mName = findViewById(R.id.installed_app_name);
+		mPname = findViewById(R.id.installed_app_pname);
+		mVersion = findViewById(R.id.installed_app_version);
+		mIcon = findViewById(R.id.installed_app_icon);
+		mUrl = findViewById(R.id.update_url);
+		mActionOneButton = findViewById(R.id.action_one_button);
+		mActionTwoButton = findViewById(R.id.action_two_button);
+	}
+
+	public static UpdaterView build(Context context) {
+		UpdaterView instance = new UpdaterView(context);
+		instance.onFinishInflate();
+		return instance;
 	}
 
 	public void bind(Update update) {
